@@ -1,97 +1,172 @@
 import { NavLink } from "react-router-dom";
-import maintenanceImage from "../../../assets/maintenance.svg";
+import { json } from "@remix-run/node";
+import { useLoaderData } from "@remix-run/react";
+import { invoicesCollection } from "lib/invoice.server";
+import { transactionsCollection } from "lib/transaction.server";
+
+export async function loader() {
+  const invoiceCursor = invoicesCollection.findMany();
+  const invoice = await invoiceCursor.toArray();
+  const transactionsCursor = transactionsCollection.findMany();
+  const transactions = await transactionsCursor.toArray();
+  return json({ invoice, transactions });
+}
 
 export default function Index() {
+  const { invoice, transactions } = useLoaderData<typeof loader>();
+  const partailPaidCount = invoice.reduce((accum, current) => {
+    if (current.status?.toString().toLocaleLowerCase() === "partial paid") {
+      accum = accum + 1;
+    }
+    return accum;
+  }, 0);
+  const unPaidCount = invoice.reduce((accum, current) => {
+    if (current.status?.toString().toLocaleLowerCase() === "unpaid") {
+      accum = accum + 1;
+    }
+    return accum;
+  }, 0);
+  const fullPaidCount = invoice.reduce((accum, current) => {
+    if (current.status?.toString().toLocaleLowerCase() === "fully paid") {
+      accum = accum + 1;
+    }
+    return accum;
+  }, 0);
+  const unpaidAmount = invoice.reduce((accum, current) => {
+    if (current.status?.toString().toLocaleLowerCase() === "unpaid") {
+      accum = accum + Number(current.amountDue);
+    }
+    return accum;
+  }, 0);
+  const partialPaidAmount = invoice.reduce((accum, current) => {
+    if (current.status?.toString().toLocaleLowerCase() === "partial paid") {
+      accum = accum + Number(current.amountDue);
+    }
+    return accum;
+  }, 0);
+  const fullyPaidAmount = invoice.reduce((accum, current) => {
+    if (current.status?.toString().toLocaleLowerCase() === "fully paid") {
+      accum = accum + Number(current.totalAmount);
+    }
+    return accum;
+  }, 0);
   return (
-    <div className="p-4">
+    <div className="p-2 md:p-4 bg-[#f9fafb] h-screen w-full">
       <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
         Dashboard
       </h1>
-      <div className="bg-white rounded-lg border-2 border-slate-300 p-8 mt-5 flex flex-col gap-5 w-fit">
-        <div className="flex flex-col md:flex-row gap-5 p-2">
-          <div className="flex items-center gap-3">
-            <p className="font-bold">From</p>
-            <input
-              className="w-full"
-              type="date"
-              name="initialdate"
-              id="initialdate"
-            />
+      <div className="flex flex-col gap-5 justify-center items-center md:flex-row md:flex-wrap">
+        <div className="bg-white rounded-lg border-2 border-slate-300 p-4 md:p-8 mt-5 flex flex-col gap-5 w-full flex-1">
+          <div className="flex flex-col md:flex-row gap-5">
+            <div className="flex items-center gap-3">
+              <p className="font-bold">From</p>
+              <input
+                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                type="date"
+                name="initialdate"
+                id="initialdate"
+              />
+            </div>
+            <div className="flex items-center gap-8">
+              <p className="font-bold">To</p>
+              <input
+                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                type="date"
+                name="initialdate"
+                id="initialdate"
+              />
+            </div>
+            <button className="w-full md:w-fit text-slate-900 bg-[#f3c41a] focus:ring-2 focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-[#f3c41a] focus:outline-none dark:focus:ring-slate-900">
+              Search
+            </button>
           </div>
-          <div className="flex items-center gap-8">
-            <p className="font-bold">To</p>
-            <input
-              className="w-full"
-              type="date"
-              name="initialdate"
-              id="initialdate"
-            />
+          <div className="w-full">
+            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
+              Invoices
+            </h1>
+            <div className="flex flex-col gap-5 md:flex-row mt-5 w-full">
+              <NavLink
+                to="invoices?status=Unpaid"
+                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
+              >
+                <p className="text-md font-semibold">Unpaid</p>
+                <p className="text-2xl font-semibold">{unPaidCount}</p>
+                <p className="text-xs font-semibold mt-2">Total Unpaid Amount</p>
+                <p className="text-xl font-semibold">Rs. {unpaidAmount}</p>
+              </NavLink>
+              <NavLink
+                to="invoices?status=Partial+Paid"
+                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
+              >
+                <p className="text-md font-semibold">Partial Paid</p>
+                <p className="text-2xl font-semibold">{partailPaidCount}</p>
+                <p className="text-xs font-semibold mt-2">Total Partial Paid Amount</p>
+                <p className="text-xl font-semibold">Rs. {partialPaidAmount}</p>
+              </NavLink>
+              <NavLink
+                to="invoices?status=Fully+Paid"
+                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
+              >
+                <p className="text-md font-semibold">Full Paid</p>
+                <p className="text-2xl font-semibold">{fullPaidCount}</p>
+                <p className="text-xs font-semibold mt-2">Total Amount Received</p>
+                <p className="text-xl font-semibold">Rs. {fullyPaidAmount}</p>
+              </NavLink>
+            </div>
+          </div>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
+              Orders
+            </h1>
+            <div className="flex flex-col gap-5 md:flex-row mt-5">
+              <a
+                href="#"
+                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
+              >
+                <p className="text-md font-semibold">Pending</p>
+                <p className="text-2xl font-semibold mt-3">15</p>
+              </a>
+              <a
+                href="#"
+                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
+              >
+                <p className="text-md font-semibold">In Progress</p>
+                <p className="text-2xl font-semibold mt-3">9</p>
+              </a>
+              <a
+                href="#"
+                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
+              >
+                <p className="text-md font-semibold">Complete</p>
+                <p className="text-2xl font-semibold mt-3">10</p>
+              </a>
+            </div>
           </div>
         </div>
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
-            Invoices
-          </h1>
-          <div className="flex flex-col gap-5 md:flex-row mt-5">
-            <a
-              href="#"
-              className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-48 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-            >
-              <p className="text-lg font-semibold">Unpaid</p>
-              <p className="text-2xl font-semibold">23</p>
-              <p className="text-xs font-semibold">Total Amount Due</p>
-              <p className="text-xl font-semibold">Rs. 17000</p>
-            </a>
-            <a
-              href="#"
-              className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-48 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-            >
-              <p className="text-lg font-semibold">Partial Paid</p>
-              <p className="text-2xl font-semibold">23</p>
-              <p className="text-xs font-semibold">Total Amount Due</p>
-              <p className="text-xl font-semibold">Rs. 17000</p>
-            </a>
-            <a
-              href="#"
-              className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-48 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-            >
-              <p className="text-lg font-semibold">Full Paid</p>
-              <p className="text-2xl font-semibold">23</p>
-              <p className="text-xs font-semibold">Total Amount Due</p>
-              <p className="text-xl font-semibold">Rs. 17000</p>
-            </a>
-          </div>
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
-            Orders
-          </h1>
-          <div className="flex flex-col gap-5 md:flex-row mt-5">
-            <a
-              href="#"
-              className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-48 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-            >
-              <p className="text-lg font-semibold">Pending</p>
-              <p className="text-2xl font-semibold">15</p>
-            </a>
-            <a
-              href="#"
-              className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-48 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-            >
-              <p className="text-lg font-semibold">In Progress</p>
-              <p className="text-2xl font-semibold">9</p>
-            </a>
-            <a
-              href="#"
-              className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-48 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-            >
-              <p className="text-lg font-semibold">Complete</p>
-              <p className="text-2xl font-semibold">10</p>
-            </a>
+        <div className="bg-white rounded-lg border-2 border-slate-300 p-8 mt-5 flex flex-col gap-5 md:w-96 self-start w-full">
+          <p className="font-bold text-lg">Latest Transactions</p>
+          {transactions.length === 0 ? (
+            <p className="text-sm text-slate-500">
+              No transaction has been made yet.
+            </p>
+          ) : (
+            <div className="w-full flex justify-between">
+              <p className="font-bold">Date</p>
+              <p className="font-bold">Amount</p>
+            </div>
+          )}
+          <div>
+            {transactions.slice(0, 10).map((elem, key) => {
+              return (
+                <div key={key} className="w-full flex justify-between">
+                  <p>{new Date(elem.transactionDate).toDateString()}</p>
+                  <p>{elem.transactionAmount}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
-      <div></div>
     </div>
   );
 }

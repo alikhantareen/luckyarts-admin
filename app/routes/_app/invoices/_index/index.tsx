@@ -157,7 +157,7 @@ export default function InvoicesIndexRoute() {
                   />
                   <button
                     type="submit"
-                    className="absolute top-0 right-0 p-2.5 text-sm font-medium text-white bg-blue-700 rounded-r-lg border border-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                    className="absolute top-0 right-0 p-2.5 text-sm font-medium text-slate-900 bg-[#f3c41a] rounded-r-lg border border-[#f3c41a] focus:ring-2 focus:outline-none focus:ring-slate-900 dark:bg-[#f3c41a] dark:hover:bg-[#f3c41a] dark:focus:ring-[#f3c41a]"
                   >
                     <span className="px-2">Search</span>
                   </button>
@@ -174,7 +174,7 @@ export default function InvoicesIndexRoute() {
                     xmlns="http://www.w2.org/2000/svg"
                     aria-hidden="true"
                     className={`w-5 h-4 mr-2 ${
-                      status.length === 0 ? "text-gray-400" : "text-blue-700"
+                      status.length === 0 ? "text-gray-400" : "text-[#f3c41a]"
                     }`}
                     viewBox="-1 0 20 20"
                     fill="currentColor"
@@ -219,7 +219,7 @@ export default function InvoicesIndexRoute() {
                         name="status"
                         defaultChecked={status.includes("Unpaid")}
                         onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
+                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
                       <label
                         htmlFor="Unpaid"
@@ -236,7 +236,7 @@ export default function InvoicesIndexRoute() {
                         name="status"
                         defaultChecked={status.includes("Partial Paid")}
                         onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
+                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
                       <label
                         htmlFor="Partial Paid"
@@ -253,7 +253,7 @@ export default function InvoicesIndexRoute() {
                         name="status"
                         defaultChecked={status.includes("Fully Paid")}
                         onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
+                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
                       <label
                         htmlFor="Fully Paid"
@@ -270,7 +270,7 @@ export default function InvoicesIndexRoute() {
                         name="status"
                         defaultChecked={status.includes("Archived")}
                         onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
+                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
                       <label
                         htmlFor="Archived"
@@ -286,7 +286,7 @@ export default function InvoicesIndexRoute() {
             <div className="flex items-center ml-auto space-x-2 sm:space-x-3">
               <Link
                 to="new"
-                className="inline-flex items-center justify-center w-full  px-3 py-2.5 text-sm font-medium text-center text-white rounded-lg bg-blue-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 sm:w-auto dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                className="inline-flex items-center justify-center w-full  px-3 py-2.5 text-sm font-medium text-center text-center text-slate-900 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] hover:bg-[#f3c41a] sm:w-auto"
               >
                 <svg
                   className="w-5 h-5 mr-2 -ml-1"
@@ -414,7 +414,7 @@ export default function InvoicesIndexRoute() {
                             data-drawer-show="drawer-update-product-default"
                             aria-controls="drawer-update-product-default"
                             data-drawer-placement="right"
-                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-blue-700 border border-blue-700 hover:bg-blue-100 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-slate-900 border border-slate-900 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
                           >
                             See details
                           </button>

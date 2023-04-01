@@ -8,7 +8,7 @@ import {
 } from "@remix-run/react";
 import { invoicesCollection } from "lib/invoice.server";
 import { transactionsCollection } from "lib/transaction.server";
-import logo from "../../../../assets/bits-logo.png";
+import logo from "../../../../assets/luckyartsLogo.png";
 import ReactToPrint from "react-to-print";
 import React, { useEffect, useRef, useState } from "react";
 import { Invoice, Transaction } from "db/models";
@@ -67,7 +67,6 @@ export async function loader({ params }: LoaderArgs) {
 export default function InvoiceRoute() {
   // TODO: typesafe actioData
   const actionData = useActionData();
-  console.log({ actionData });
   const transition = useNavigation();
   const [isDisabled, setDisable] = useState(false);
   const disable = () => {
@@ -172,7 +171,7 @@ export default function InvoiceRoute() {
       <div className="w-full flex justify-end mb-5">
         <ReactToPrint
           trigger={() => (
-            <button className="inline-flex justify-end items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center text-white bg-primary-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800">
+            <button className="inline-flex justify-end items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center text-slate-900 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] hover:bg-[#f3c41a]">
               Print
             </button>
           )}
@@ -216,7 +215,7 @@ export default function InvoiceRoute() {
               <button
                 data-modal-target="staticModal"
                 data-modal-toggle="staticModal"
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-blue-700 border border-blue-700 hover:bg-blue-100 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-slate-900 border border-slate-900 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
               >
                 Add transaction
               </button>
@@ -339,7 +338,7 @@ export default function InvoiceRoute() {
               <div className="flex items-center justify-end p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600">
                 <button
                   type="submit"
-                  className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                  className="text-slate-900 bg-[#f3c41a] focus:ring-2 focus:outline-none focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-bg-[#f3c41a] dark:focus:ring-slate-900"
                 >
                   {transition.state === "submitting"
                     ? "Submitting..."
@@ -484,9 +483,10 @@ const InvoiceComponent = React.forwardRef<
           </p>
         </div>
         <div className="flex flex-col justify-center md:justify-end print:justify-end md:items-end print:items-end items-start gap-2">
-          <img src={logo} alt="logo" width={150} />
-          <p className="text-lg font-bold">01bits Tech Comp.</p>
-          <p className="text-sm">291 N 4th St, San Jose, CA 95112, USA</p>
+          <img src={logo} alt="logo" width={150} className="rounded-full" />
+          <p className="text-lg font-bold">Lucky Arts Graphic Design</p>
+          <p className="text-sm">Chowk Fawara, Abdali Road, Multan, Pakistan</p>
+          <p className="text-sm">Phone No. +92306-6667200</p>
         </div>
       </div>
       <div className="mt-2 flex flex-col gap-5 print:flex-row md:flex-row justify-between">
