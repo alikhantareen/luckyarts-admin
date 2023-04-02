@@ -14,6 +14,10 @@ export async function createNewInvoice(invoice: Invoice) {
   return invoicesCollection.insertOne(invoice);
 }
 
+export async function updateWorkStatus(invoice:Invoice) {
+  
+}
+
 export async function findInvoices(
   page: number,
   statusFilters: string[],

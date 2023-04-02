@@ -50,6 +50,24 @@ export default function Index() {
     }
     return accum;
   }, 0);
+  const pendingOrdersCount = invoice.reduce((accum, current) => {
+    if (current.workStatus?.toString().toLocaleLowerCase() === "pending") {
+      accum = accum + 1;
+    }
+    return accum;
+  }, 0);
+  const inProgressOrdersCount = invoice.reduce((accum, current) => {
+    if (current.workStatus?.toString().toLocaleLowerCase() === "in progress") {
+      accum = accum + 1;
+    }
+    return accum;
+  }, 0);
+  const completeOrdersCount = invoice.reduce((accum, current) => {
+    if (current.workStatus?.toString().toLocaleLowerCase() === "complete") {
+      accum = accum + 1;
+    }
+    return accum;
+  }, 0);
   return (
     <div className="p-2 md:p-4 bg-[#f9fafb] h-screen w-full">
       <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
@@ -119,27 +137,27 @@ export default function Index() {
               Orders
             </h1>
             <div className="flex flex-col gap-5 md:flex-row mt-5">
-              <a
-                href="#"
+              <NavLink
+                to="#"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Pending</p>
-                <p className="text-2xl font-semibold mt-3">15</p>
-              </a>
-              <a
-                href="#"
+                <p className="text-2xl font-semibold mt-3">{pendingOrdersCount}</p>
+              </NavLink>
+              <NavLink
+                to="#"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">In Progress</p>
-                <p className="text-2xl font-semibold mt-3">9</p>
-              </a>
-              <a
-                href="#"
+                <p className="text-2xl font-semibold mt-3">{inProgressOrdersCount}</p>
+              </NavLink>
+              <NavLink
+                to="#"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Complete</p>
-                <p className="text-2xl font-semibold mt-3">10</p>
-              </a>
+                <p className="text-2xl font-semibold mt-3">{completeOrdersCount}</p>
+              </NavLink>
             </div>
           </div>
         </div>
@@ -156,7 +174,7 @@ export default function Index() {
             </div>
           )}
           <div>
-            {transactions.slice(0, 10).map((elem, key) => {
+            {transactions.slice(transactions.length - 10, transactions.length).reverse().map((elem, key) => {
               return (
                 <div key={key} className="w-full flex justify-between">
                   <p>{new Date(elem.transactionDate).toDateString()}</p>
