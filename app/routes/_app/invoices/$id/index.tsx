@@ -8,14 +8,14 @@ import {
 } from "@remix-run/react";
 import { invoicesCollection } from "lib/invoice.server";
 import { transactionsCollection } from "lib/transaction.server";
-import logo from "../../../../assets/bits-logo.png";
+import logo from "../../../../assets/luckyartsLogo.png";
 import ReactToPrint from "react-to-print";
 import React, { useEffect, useRef, useState } from "react";
 import { Invoice, Transaction } from "db/models";
 import { initModals, initDismisses } from "flowbite";
 import { requireUserId } from "lib/session.server";
 import { createNewTransaction } from "lib/transaction.server";
-import { TypeOf, z } from "zod";
+import { z } from "zod";
 
 export const transactionSchema = z.object({
   transactionAmount: z
@@ -30,27 +30,40 @@ export const transactionSchema = z.object({
 
 export const action = async ({ request }: ActionArgs) => {
   const formData = await request.formData();
+  const workStatus = formData.get("workStatus") as string;
+  const statusId = formData.get("statusID") as string;
   const id = formData.get("invoiceId") as string;
   const userId = await requireUserId(request);
   const transactionamount = Number(formData.get("transactionAmount"))!;
   const date = formData.get("transactionDate") as string;
   const transactionnote = formData.get("transactionNote") as string;
+  const { _action } = Object.fromEntries(formData);
 
-  if (transactionamount > 0) {
-    const transaction: Transaction = {
-      invoiceId: id!,
-      userId,
-      transactionAmount: transactionamount,
-      transactionDate: new Date(date),
-      transactionNote: transactionnote,
-      transactionStatus: "Payment",
-    };
-    const res = transactionSchema.safeParse(transaction);
-    if (res.success) {
-      await createNewTransaction(transaction);
-      return json({ success: true });
-    } else {
-      return json(res.error);
+  if (_action === "update") {
+    await invoicesCollection.updateOne({
+      filter: { id: statusId },
+      fields: { workStatus: workStatus },
+    });
+    return json({ success: "workstatusupdate" });
+  }
+
+  if (_action === "create") {
+    if (transactionamount > 0) {
+      const transaction: Transaction = {
+        invoiceId: id!,
+        userId,
+        transactionAmount: transactionamount,
+        transactionDate: new Date(date),
+        transactionNote: transactionnote,
+        transactionStatus: "Payment",
+      };
+      const res = transactionSchema.safeParse(transaction);
+      if (res.success) {
+        await createNewTransaction(transaction);
+        return json({ success: true });
+      } else {
+        return json(res.error);
+      }
     }
   }
 };
@@ -67,7 +80,6 @@ export async function loader({ params }: LoaderArgs) {
 export default function InvoiceRoute() {
   // TODO: typesafe actioData
   const actionData = useActionData();
-  console.log({ actionData });
   const transition = useNavigation();
   const [isDisabled, setDisable] = useState(false);
   const disable = () => {
@@ -100,7 +112,7 @@ export default function InvoiceRoute() {
   }, [transactions]);
 
   return (
-    <div className="w-full md:p-5 bg-[#f9fafb]">
+    <div className="w-full md:p-5 mt-16 md:mt-2 bg-[#f9fafb]">
       <nav className="flex mb-5" aria-label="Breadcrumb">
         <ol className="inline-flex items-center space-x-1 text-sm font-medium md:space-x-2">
           <li className="inline-flex items-center">
@@ -172,7 +184,7 @@ export default function InvoiceRoute() {
       <div className="w-full flex justify-end mb-5">
         <ReactToPrint
           trigger={() => (
-            <button className="inline-flex justify-end items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center text-white bg-primary-700 rounded-lg focus:ring-4 focus:ring-primary-200 dark:focus:ring-primary-900 hover:bg-primary-800">
+            <button className="inline-flex justify-end items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center text-slate-900 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] hover:bg-[#f3c41a]">
               Print
             </button>
           )}
@@ -187,45 +199,111 @@ export default function InvoiceRoute() {
             transactions={transactions!}
           />
         </div>
-        <div className="p-5 flex w-full md:w-2/6 flex-col gap-5 h-fit bg-white rounded-lg border-2 border-slate-300">
-          <p className="border-b-2 border-black font-bold p-2 text-lg">
-            Transaction History
-          </p>
-          {transactions.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No transaction has been made yet.
+        <div className="flex flex-col gap-5 md:w-2/6 h-fit">
+          <div className="p-5 flex w-full flex-col gap-5 h-fit bg-white rounded-lg border-2 border-slate-300">
+            <p className="border-b-2 border-black font-bold p-2 text-lg">
+              Work Status
             </p>
-          ) : (
-            <div className="w-full flex justify-between">
-              <p className="font-bold">Date</p>
-              <p className="font-bold">Amount</p>
-            </div>
-          )}
-          <div>
-            {transactions.map((elem, key) => {
-              return (
-                <div key={key} className="w-full flex justify-between">
-                  <p>{new Date(elem.transactionDate).toDateString()}</p>
-                  <p>{elem.transactionAmount}</p>
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex justify-end">
-            {invoice?.amountDue! > 0 ? (
-              <button
-                data-modal-target="staticModal"
-                data-modal-toggle="staticModal"
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-blue-700 border border-blue-700 hover:bg-blue-100 focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-              >
-                Add transaction
-              </button>
+            {invoice?.workStatus?.toLocaleLowerCase() === "complete" ? (
+              <p>
+              Current Status:{" "}
+              <span className={`${invoice?.workStatus?.toLocaleLowerCase() === "complete" ? "text-green-500" : invoice?.workStatus?.toLocaleLowerCase() === "pending" ? "text-red-500" : "text-slate-500" } font-bold text-md`}>
+                {invoice?.workStatus?.toLocaleUpperCase()}
+              </span>
+            </p>
             ) : (
-              ""
+              <div>
+                <p>
+                  Current Status:{" "}
+                  <span className={`${invoice?.workStatus?.toLocaleLowerCase() === "complete" ? "text-green-500" : invoice?.workStatus?.toLocaleLowerCase() === "pending" ? "text-red-500" : "text-slate-500" } font-bold text-md`}>
+                    {invoice?.workStatus?.toLocaleUpperCase()}
+                  </span>
+                </p>
+                <div>
+                  <Form
+                    method="post"
+                    action={`/invoices/${invoice?.id}`}
+                    className="flex flex-col gap-5"
+                  >
+                    <label
+                      htmlFor="countries"
+                      className="block -mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                    >
+                      Change Status
+                    </label>
+                    <select
+                      id="workstatuses"
+                      name="workStatus"
+                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                    >
+                      <option selected value={"Pending"}>
+                        Pending
+                      </option>
+                      <option value={"In Progress"}>In progress</option>
+                      <option value={"Complete"}>Complete</option>
+                    </select>
+                    <input
+                      type="text"
+                      hidden
+                      name="statusID"
+                      value={invoice?.id}
+                    />
+                    <button
+                      name="_action"
+                      value="update"
+                      type="submit"
+                      className="w-fit self-end inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-slate-900 border border-slate-900 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
+                    >
+                      {transition.state === "submitting"
+                    ? "Changing..."
+                    : "Change Status"}
+                    </button>
+                  </Form>
+                </div>
+              </div>
             )}
+          </div>
+          <div className="p-5 flex w-full flex-col gap-5 h-fit bg-white rounded-lg border-2 border-slate-300">
+            <p className="border-b-2 border-black font-bold p-2 text-lg">
+              Transaction History
+            </p>
+            {transactions.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No transaction has been made yet.
+              </p>
+            ) : (
+              <div className="w-full flex justify-between">
+                <p className="font-bold">Date</p>
+                <p className="font-bold">Amount</p>
+              </div>
+            )}
+            <div>
+              {transactions.map((elem, key) => {
+                return (
+                  <div key={key} className="w-full flex justify-between">
+                    <p>{new Date(elem.transactionDate).toDateString()}</p>
+                    <p>{elem.transactionAmount}</p>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex justify-end">
+              {invoice?.amountDue! > 0 ? (
+                <button
+                  data-modal-target="staticModal"
+                  data-modal-toggle="staticModal"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-slate-900 border border-slate-900 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
+                >
+                  Add transaction
+                </button>
+              ) : (
+                ""
+              )}
+            </div>
           </div>
         </div>
       </div>
+      {/* transaction modal */}
       <div
         id="staticModal"
         data-modal-backdrop="staticModal"
@@ -338,8 +416,10 @@ export default function InvoiceRoute() {
               </div>
               <div className="flex items-center justify-end p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600">
                 <button
+                  name="_action"
+                  value="create"
                   type="submit"
-                  className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                  className="text-slate-900 bg-[#f3c41a] focus:ring-2 focus:outline-none focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-bg-[#f3c41a] dark:focus:ring-slate-900"
                 >
                   {transition.state === "submitting"
                     ? "Submitting..."
@@ -428,7 +508,7 @@ export default function InvoiceRoute() {
             <span className="sr-only">Check icon</span>
           </div>
           <div className="ml-3 text-sm font-normal">
-            Transaction has been added successfully.
+            Operation has been successfully completed.
           </div>
           <button
             type="button"
@@ -484,9 +564,10 @@ const InvoiceComponent = React.forwardRef<
           </p>
         </div>
         <div className="flex flex-col justify-center md:justify-end print:justify-end md:items-end print:items-end items-start gap-2">
-          <img src={logo} alt="logo" width={150} />
-          <p className="text-lg font-bold">01bits Tech Comp.</p>
-          <p className="text-sm">291 N 4th St, San Jose, CA 95112, USA</p>
+          <img src={logo} alt="logo" width={150} className="rounded-full" />
+          <p className="text-lg font-bold">Lucky Arts Graphic Design</p>
+          <p className="text-sm">Chowk Fawara, Abdali Road, Multan, Pakistan</p>
+          <p className="text-sm">Phone No. +92306-6667200</p>
         </div>
       </div>
       <div className="mt-2 flex flex-col gap-5 print:flex-row md:flex-row justify-between">

@@ -21,6 +21,17 @@ export const InvoiceStatuses = [
   "Archived",
 ];
 
+export type WorkStatus =
+  | "Pending"
+  | "In Progress"
+  | "Complete"
+
+export const WorkStatuses = [
+  "Pending",
+  "In Progress",
+  "Complete",
+];
+
 @TigrisCollection("invoices")
 export class Invoice {
   @PrimaryKey(TigrisDataTypes.UUID, { order: 1, autoGenerate: true })
@@ -37,6 +48,9 @@ export class Invoice {
 
   @Field({ elements: Item })
   items!: Array<Item>;
+
+  @Field({ default: "Pending" })
+  workStatus?: WorkStatus;
 
   @Field({ default: "Unpaid" })
   status?: InvoiceStatus;

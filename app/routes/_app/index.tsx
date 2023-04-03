@@ -3,6 +3,7 @@ import { Link, Outlet, useLoaderData } from "@remix-run/react";
 import { initDrawers, initDropdowns } from "flowbite";
 import { getUser } from "lib/session.server";
 import { useEffect } from "react";
+import logo from "../../assets/luckyartsLogo.png"
 
 export async function loader({ request }: LoaderArgs) {
   const user = await getUser(request);
@@ -52,12 +53,12 @@ export default function App() {
               </button>
               <Link to="/" className="flex ml-2 md:mr-24">
                 <img
-                  src="https://flowbite.com/docs/images/logo.svg"
-                  className="h-8 mr-3"
+                  src={logo}
+                  className="h-8 mr-3 rounded-full"
                   alt="FlowBite Logo"
                 />
                 <span className="self-center text-xl font-semibold md:text-2xl whitespace-nowrap dark:text-white">
-                  Seikyu-sho
+                  Lucky Arts
                 </span>
               </Link>
             </div>
@@ -73,8 +74,8 @@ export default function App() {
                     <span className="sr-only">Open user menu</span>
                     <img
                       className="w-8 h-8 rounded-full"
-                      src="https://flowbite.com/docs/images/people/profile-picture-5.jpg"
-                      alt="user photo"
+                      src={logo}
+                      alt="user"
                     />
                   </button>
                 </div>
@@ -129,7 +130,7 @@ export default function App() {
               >
                 <svg
                   aria-hidden="true"
-                  className="w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                  className="w-6 h-6 text-[#f3c41a] transition duration-75 dark:text-[#f3c41a] group-hover:text-gray-900 dark:group-hover:text-white"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                   xmlns="http://www.w3.org/2000/svg"
@@ -147,7 +148,7 @@ export default function App() {
               >
                 <svg
                   aria-hidden="true"
-                  className="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                  className="flex-shrink-0 w-6 h-6 text-[#f3c41a] transition duration-75 dark:text-[#f3c41a] group-hover:text-gray-900 dark:group-hover:text-white"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                   xmlns="http://www.w3.org/2000/svg"
