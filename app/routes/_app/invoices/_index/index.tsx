@@ -18,13 +18,15 @@ const PAGE_SIZE = 5;
 export async function loader({ request }: LoaderArgs) {
   const url = new URL(request.url);
   const statusFilters = url.searchParams.getAll("status");
+  const workStatus = url.searchParams.getAll("workStatus");
   const page = Number(url.searchParams.get("page") || "1");
   const searchQuery = url.searchParams.get("q") || "";
 
   const { invoices, total } = await findInvoices(
     page,
     statusFilters,
-    searchQuery
+    searchQuery,
+    workStatus
   );
   return json({ invoices, total });
 }
@@ -39,6 +41,7 @@ export default function InvoicesIndexRoute() {
 
   const page = Number(searchParams.get("page") || "1");
   const status = searchParams.getAll("status");
+  const workStatus = searchParams.getAll("workStatus");
   const q = searchParams.get("q");
 
   useEffect(() => {
@@ -185,7 +188,7 @@ export default function InvoicesIndexRoute() {
                       clipRule="evenodd"
                     />
                   </svg>
-                  Filter
+                  Invoice Status
                   <svg
                     className="-mr-2 ml-1.5 w-5 h-5"
                     fill="currentColor"
@@ -282,6 +285,108 @@ export default function InvoicesIndexRoute() {
                   </ul>
                 </div>
               </div>
+              <div className="flex items-center w-full space-x-4 md:w-auto mt-5 md:ml-5 md:mt-0">
+                <button
+                  id="filterDropdownButtonSecond"
+                  data-dropdown-toggle="filterDropdownSecond"
+                  className="flex items-center justify-center w-full px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg md:w-auto focus:outline-none hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+                  type="button"
+                >
+                  <svg
+                    xmlns="http://www.w2.org/2000/svg"
+                    aria-hidden="true"
+                    className={`w-5 h-4 mr-2 ${
+                      workStatus.length === 0 ? "text-gray-400" : "text-[#f3c41a]"
+                    }`}
+                    viewBox="-1 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M2 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Work Status
+                  <svg
+                    className="-mr-2 ml-1.5 w-5 h-5"
+                    fill="currentColor"
+                    viewBox="-1 0 20 20"
+                    xmlns="http://www.w2.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      clipRule="evenodd"
+                      fillRule="evenodd"
+                      d="M4.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    />
+                  </svg>
+                </button>
+                <div
+                  id="filterDropdownSecond"
+                  className="z-10 hidden w-48 p-3 bg-white rounded-lg shadow dark:bg-gray-700"
+                >
+                  <h5 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">
+                    Status
+                  </h5>
+                  <ul
+                    className="space-y-3 text-sm"
+                    aria-labelledby="dropdownDefault"
+                  >
+                    <li className="flex items-center">
+                      <input
+                        id="Pending"
+                        type="checkbox"
+                        value="Pending"
+                        name="workStatus"
+                        defaultChecked={status.includes("Pending")}
+                        onChange={() => submit(formRef.current)}
+                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
+                      />
+                      <label
+                        htmlFor="Pending"
+                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
+                      >
+                        Pending
+                      </label>
+                    </li>
+                    <li className="flex items-center">
+                      <input
+                        id="In Progress"
+                        type="checkbox"
+                        value="In Progress"
+                        name="workStatus"
+                        defaultChecked={status.includes("In Progress")}
+                        onChange={() => submit(formRef.current)}
+                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
+                      />
+                      <label
+                        htmlFor="In Progress"
+                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
+                      >
+                        In Progress
+                      </label>
+                    </li>
+                    <li className="flex items-center">
+                      <input
+                        id="Complete"
+                        type="checkbox"
+                        value="Complete"
+                        name="workStatus"
+                        defaultChecked={status.includes("Complete")}
+                        onChange={() => submit(formRef.current)}
+                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
+                      />
+                      <label
+                        htmlFor="Complete"
+                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
+                      >
+                        Complete
+                      </label>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </Form>
             <div className="flex items-center ml-auto space-x-2 sm:space-x-3">
               <Link
@@ -353,7 +458,13 @@ export default function InvoicesIndexRoute() {
                       scope="col"
                       className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
                     >
-                      Status
+                      Invoice
+                    </th>
+                    <th
+                      scope="col"
+                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                    >
+                      Work
                     </th>
                     <th
                       scope="col"
@@ -404,6 +515,9 @@ export default function InvoicesIndexRoute() {
                       </td>
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
                         {invoice.status}
+                      </td>
+                      <td className={`${invoice?.workStatus?.toLocaleLowerCase() === "complete" ? "text-green-500" : invoice?.workStatus?.toLocaleLowerCase() === "pending" ? "text-red-500" : "text-slate-500" } p-4 text-base font-medium whitespace-nowrap dark:text-white`}>
+                        {invoice.workStatus?.toLocaleUpperCase()}
                       </td>
                       <td className="p-4 space-x-2 whitespace-nowrap">
                         <Link to={`/invoices/${invoice.id}`}>

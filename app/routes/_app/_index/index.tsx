@@ -3,71 +3,54 @@ import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { invoicesCollection } from "lib/invoice.server";
 import { transactionsCollection } from "lib/transaction.server";
+import { FindQueryOptions, Order } from "@tigrisdata/core/dist/types";
 
 export async function loader() {
   const invoiceCursor = invoicesCollection.findMany();
   const invoice = await invoiceCursor.toArray();
-  const transactionsCursor = transactionsCollection.findMany();
+  const transactionsCursor = transactionsCollection.findMany({
+    options: new FindQueryOptions(10, 0),
+    sort: { field: "transactionDate", order: Order.DESC },
+  });
   const transactions = await transactionsCursor.toArray();
   return json({ invoice, transactions });
 }
 
 export default function Index() {
   const { invoice, transactions } = useLoaderData<typeof loader>();
-  const partailPaidCount = invoice.reduce((accum, current) => {
-    if (current.status?.toString().toLocaleLowerCase() === "partial paid") {
-      accum = accum + 1;
-    }
-    return accum;
-  }, 0);
-  const unPaidCount = invoice.reduce((accum, current) => {
-    if (current.status?.toString().toLocaleLowerCase() === "unpaid") {
-      accum = accum + 1;
-    }
-    return accum;
-  }, 0);
-  const fullPaidCount = invoice.reduce((accum, current) => {
-    if (current.status?.toString().toLocaleLowerCase() === "fully paid") {
-      accum = accum + 1;
-    }
-    return accum;
-  }, 0);
-  const unpaidAmount = invoice.reduce((accum, current) => {
-    if (current.status?.toString().toLocaleLowerCase() === "unpaid") {
-      accum = accum + Number(current.amountDue);
-    }
-    return accum;
-  }, 0);
-  const partialPaidAmount = invoice.reduce((accum, current) => {
-    if (current.status?.toString().toLocaleLowerCase() === "partial paid") {
-      accum = accum + Number(current.amountDue);
-    }
-    return accum;
-  }, 0);
+  function invoicesCounter(condition: string, invoice: Array<any>): any {
+    let accumulatedValue = invoice.reduce((accum, current) => {
+      if (current.status?.toString().toLocaleLowerCase() === condition) {
+        accum = accum + 1;
+      }
+      return accum;
+    }, 0);
+    return accumulatedValue
+  }
+  function invoicesPaymentCalculator(condition: string, invoice: Array<any>): any {
+    const accumulator = invoice.reduce((accum, current) => {
+      if (current.status?.toString().toLocaleLowerCase() === condition) {
+        accum = accum + Number(current.amountDue);
+      }
+      return accum;
+    }, 0);
+    return accumulator;
+  }
   const fullyPaidAmount = invoice.reduce((accum, current) => {
     if (current.status?.toString().toLocaleLowerCase() === "fully paid") {
       accum = accum + Number(current.totalAmount);
     }
     return accum;
   }, 0);
-  const pendingOrdersCount = invoice.reduce((accum, current) => {
-    if (current.workStatus?.toString().toLocaleLowerCase() === "pending") {
-      accum = accum + 1;
-    }
-    return accum;
-  }, 0);
-  const inProgressOrdersCount = invoice.reduce((accum, current) => {
-    if (current.workStatus?.toString().toLocaleLowerCase() === "in progress") {
-      accum = accum + 1;
-    }
-    return accum;
-  }, 0);
-  const completeOrdersCount = invoice.reduce((accum, current) => {
-    if (current.workStatus?.toString().toLocaleLowerCase() === "complete") {
-      accum = accum + 1;
-    }
-    return accum;
-  }, 0);
+  function ordersStatusCounter(condition: string, invoice: Array<any>): any {
+    const counter = invoice.reduce((accum, current) => {
+      if (current.workStatus?.toString().toLocaleLowerCase() === condition) {
+        accum = accum + 1;
+      }
+      return accum;
+    }, 0);
+    return counter
+  }
   return (
     <div className="p-2 md:p-4 bg-[#f9fafb] h-screen w-full">
       <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
@@ -108,25 +91,25 @@ export default function Index() {
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Unpaid</p>
-                <p className="text-2xl font-semibold">{unPaidCount}</p>
+                <p className="text-2xl font-semibold">{invoicesCounter("unpaid", invoice)}</p>
                 <p className="text-xs font-semibold mt-2">Total Unpaid Amount</p>
-                <p className="text-xl font-semibold">Rs. {unpaidAmount}</p>
+                <p className="text-xl font-semibold">Rs. {invoicesPaymentCalculator("unpaid", invoice)}</p>
               </NavLink>
               <NavLink
                 to="invoices?status=Partial+Paid"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Partial Paid</p>
-                <p className="text-2xl font-semibold">{partailPaidCount}</p>
+                <p className="text-2xl font-semibold">{invoicesCounter("partial paid", invoice)}</p>
                 <p className="text-xs font-semibold mt-2">Total Partial Paid Amount</p>
-                <p className="text-xl font-semibold">Rs. {partialPaidAmount}</p>
+                <p className="text-xl font-semibold">Rs. {invoicesPaymentCalculator("partial paid", invoice)}</p>
               </NavLink>
               <NavLink
                 to="invoices?status=Fully+Paid"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Full Paid</p>
-                <p className="text-2xl font-semibold">{fullPaidCount}</p>
+                <p className="text-2xl font-semibold">{invoicesCounter("fully paid", invoice)}</p>
                 <p className="text-xs font-semibold mt-2">Total Amount Received</p>
                 <p className="text-xl font-semibold">Rs. {fullyPaidAmount}</p>
               </NavLink>
@@ -138,25 +121,25 @@ export default function Index() {
             </h1>
             <div className="flex flex-col gap-5 md:flex-row mt-5">
               <NavLink
-                to="#"
+                to="invoices?workStatus=Pending"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Pending</p>
-                <p className="text-2xl font-semibold mt-3">{pendingOrdersCount}</p>
+                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("pending", invoice)}</p>
               </NavLink>
               <NavLink
-                to="#"
+                to="invoices?workStatus=In+Progress"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">In Progress</p>
-                <p className="text-2xl font-semibold mt-3">{inProgressOrdersCount}</p>
+                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("in progress", invoice)}</p>
               </NavLink>
               <NavLink
-                to="#"
+                to="invoices?workStatus=Complete"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Complete</p>
-                <p className="text-2xl font-semibold mt-3">{completeOrdersCount}</p>
+                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("complete", invoice)}</p>
               </NavLink>
             </div>
           </div>
@@ -174,11 +157,11 @@ export default function Index() {
             </div>
           )}
           <div>
-            {transactions.slice(transactions.length - 10, transactions.length).reverse().map((elem, key) => {
+            {transactions.map((elem, key) => {
               return (
                 <div key={key} className="w-full flex justify-between">
                   <p>{new Date(elem.transactionDate).toDateString()}</p>
-                  <p>{elem.transactionAmount}</p>
+                  <p>Rs. {elem.transactionAmount}</p>
                 </div>
               );
             })}

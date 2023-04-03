@@ -15,7 +15,7 @@ import { Invoice, Transaction } from "db/models";
 import { initModals, initDismisses } from "flowbite";
 import { requireUserId } from "lib/session.server";
 import { createNewTransaction } from "lib/transaction.server";
-import { TypeOf, z } from "zod";
+import { z } from "zod";
 
 export const transactionSchema = z.object({
   transactionAmount: z
@@ -38,8 +38,6 @@ export const action = async ({ request }: ActionArgs) => {
   const date = formData.get("transactionDate") as string;
   const transactionnote = formData.get("transactionNote") as string;
   const { _action } = Object.fromEntries(formData);
-
-  console.log(workStatus, statusId);
 
   if (_action === "update") {
     await invoicesCollection.updateOne({
@@ -238,11 +236,11 @@ export default function InvoiceRoute() {
                       name="workStatus"
                       className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                     >
-                      <option selected value="pending">
+                      <option selected value={"Pending"}>
                         Pending
                       </option>
-                      <option value="in progress">In progress</option>
-                      <option value="complete">Complete</option>
+                      <option value={"In Progress"}>In progress</option>
+                      <option value={"Complete"}>Complete</option>
                     </select>
                     <input
                       type="text"
