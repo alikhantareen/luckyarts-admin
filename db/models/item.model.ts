@@ -16,6 +16,9 @@ export class Item {
   @Field(TigrisDataTypes.INT32)
   itemPrice!: number;
 
+  @Field(TigrisDataTypes.INT32, { default: 0 })
+  itemDiscount!: number;
+
   @Field(TigrisDataTypes.INT32)
   itemQuantity!: number;
 

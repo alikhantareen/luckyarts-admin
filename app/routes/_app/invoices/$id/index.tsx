@@ -206,16 +206,32 @@ export default function InvoiceRoute() {
             </p>
             {invoice?.workStatus?.toLocaleLowerCase() === "complete" ? (
               <p>
-              Current Status:{" "}
-              <span className={`${invoice?.workStatus?.toLocaleLowerCase() === "complete" ? "text-green-500" : invoice?.workStatus?.toLocaleLowerCase() === "pending" ? "text-red-500" : "text-slate-500" } font-bold text-md`}>
-                {invoice?.workStatus?.toLocaleUpperCase()}
-              </span>
-            </p>
+                Current Status:{" "}
+                <span
+                  className={`${
+                    invoice?.workStatus?.toLocaleLowerCase() === "complete"
+                      ? "text-green-500"
+                      : invoice?.workStatus?.toLocaleLowerCase() === "pending"
+                      ? "text-red-500"
+                      : "text-slate-500"
+                  } font-bold text-md`}
+                >
+                  {invoice?.workStatus?.toLocaleUpperCase()}
+                </span>
+              </p>
             ) : (
               <div>
                 <p>
                   Current Status:{" "}
-                  <span className={`${invoice?.workStatus?.toLocaleLowerCase() === "complete" ? "text-green-500" : invoice?.workStatus?.toLocaleLowerCase() === "pending" ? "text-red-500" : "text-slate-500" } font-bold text-md`}>
+                  <span
+                    className={`${
+                      invoice?.workStatus?.toLocaleLowerCase() === "complete"
+                        ? "text-green-500"
+                        : invoice?.workStatus?.toLocaleLowerCase() === "pending"
+                        ? "text-red-500"
+                        : "text-slate-500"
+                    } font-bold text-md`}
+                  >
                     {invoice?.workStatus?.toLocaleUpperCase()}
                   </span>
                 </p>
@@ -255,8 +271,8 @@ export default function InvoiceRoute() {
                       className="w-fit self-end inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-slate-900 border border-slate-900 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
                     >
                       {transition.state === "submitting"
-                    ? "Changing..."
-                    : "Change Status"}
+                        ? "Changing..."
+                        : "Change Status"}
                     </button>
                   </Form>
                 </div>
@@ -551,6 +567,9 @@ const InvoiceComponent = React.forwardRef<
   InvoiceComponentProps
 >((props, ref) => {
   const { invoice, transactions } = props;
+  const totalDiscount = invoice?.items
+    .map((i) => i.itemDiscount * i.itemQuantity)
+    .reduce((p, n) => p + n, 0);
 
   return (
     <div ref={ref} className="p-5 print:p-8">
@@ -627,6 +646,36 @@ const InvoiceComponent = React.forwardRef<
             Net Total (Rs.)
           </td>
           <td className="col-span-2 md:col-span-1 print:col-span-1">
+            {invoice.totalAmount + totalDiscount}
+          </td>
+        </tr>
+        <tr
+          className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}
+        >
+          <td className="col-span-2 text-left">
+            <p className="text-lg"></p>
+            <p className="flex md:hidden print:hidden"></p>
+          </td>
+          <td className=""></td>
+          <td className="text-left md:text-right print:text-right text-md col-span-2 font-semibold text-slate-600">
+            Discount Total (Rs.)
+          </td>
+          <td className="col-span-2 md:col-span-1 print:col-span-1">
+            {totalDiscount}
+          </td>
+        </tr>
+        <tr
+          className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}
+        >
+          <td className="col-span-2 text-left">
+            <p className="text-lg"></p>
+            <p className="flex md:hidden print:hidden"></p>
+          </td>
+          <td className=""></td>
+          <td className="text-left md:text-right print:text-right text-md col-span-2 font-semibold text-slate-600">
+            After Discount (Rs.)
+          </td>
+          <td className="col-span-2 md:col-span-1 print:col-span-1">
             {invoice.totalAmount}
           </td>
         </tr>
@@ -639,7 +688,7 @@ const InvoiceComponent = React.forwardRef<
           </td>
           <td className="hidden md:block print:block"></td>
           <td className="text-left md:text-right print:text-right col-span-2 font-semibold text-slate-600">
-            Amount Paid (Rs.)
+            Advance Payment (Rs.)
           </td>
           <td className="col-span-2 md:col-span-1 print:col-span-1">
             {transactions.reduce((acc, obj) => {
@@ -658,7 +707,9 @@ const InvoiceComponent = React.forwardRef<
           <td
             className={`col-span-2 text-left md:text-right print:text-right font-semibold md:text-lg print:text-lg`}
           >
-            {invoice.amountDue! > 0 ? "Amount Due (Rs.)" : "FULLY PAID ✅"}
+            {invoice.amountDue! > 0
+              ? "Remaining Payment (Rs.)"
+              : "FULLY PAID ✅"}
           </td>
           <td className="col-span-2 md:col-span-1 print:col-span-1 md:text-lg print:text-lg font-semibold">
             {invoice.amountDue! > 0 ? invoice.amountDue! : ""}

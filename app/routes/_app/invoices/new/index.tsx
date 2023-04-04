@@ -35,6 +35,7 @@ export const action = async ({ request }: ActionArgs) => {
   const formData = await request.formData();
   const itemNames = formData.getAll("itemName");
   const itemPrices = formData.getAll("itemPrice");
+  const itemDiscounts = formData.getAll("itemDiscount");
   const itemQuantities = formData.getAll("itemQuantity");
   const itemDescriptions = formData.getAll("itemDescription");
   const amountPaid = Number(formData.get("amountPaid"));
@@ -47,18 +48,20 @@ export const action = async ({ request }: ActionArgs) => {
   for (let i = 0; i < itemNames.length; i++) {
     const itemName = itemNames[i] as string;
     const itemPrice = Number(itemPrices[i]);
+    const itemDiscount = Number(itemDiscounts[i]);
     const itemQuantity = Number(itemQuantities[i]);
     const itemDescription = itemDescriptions[i] as string;
     items.push({
       itemName,
       itemPrice,
+      itemDiscount,
       itemQuantity,
       itemDescription,
     });
   }
 
   const totalAmount = items
-    .map((i) => i.itemPrice * i.itemQuantity)
+    .map((i) => i.itemPrice * i.itemQuantity - i.itemDiscount * i.itemQuantity)
     .reduce((prev, curr) => prev + curr, 0);
   if (amountPaid > totalAmount) {
     return json({
@@ -95,12 +98,15 @@ export default function NewInvoiceRoute() {
   const transition = useNavigation();
 
   const [items, setItems] = useState<Item[]>([
-    { itemName: "", itemPrice: 0, itemQuantity: 1 },
+    { itemName: "", itemPrice: 0, itemDiscount: 0, itemQuantity: 1 },
   ]);
   const [paid, setPaid] = useState(0);
 
   const subtotals = useMemo(
-    () => items.map((i) => i.itemPrice * i.itemQuantity),
+    () =>
+      items.map((i) => {
+        return i.itemPrice * i.itemQuantity - i.itemDiscount * i.itemQuantity;
+      }),
     [items]
   );
   const total = useMemo(() => {
@@ -212,6 +218,8 @@ export default function NewInvoiceRoute() {
             <input
               name="customerPhone"
               type="text"
+              maxLength={11}
+              minLength={11}
               placeholder="Type customer phone"
               required
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
@@ -248,7 +256,7 @@ export default function NewInvoiceRoute() {
                 </p>
                 <input
                   name="itemName"
-                  placeholder="Item name"
+                  placeholder="Item detail"
                   value={item.itemName}
                   required
                   onChange={(e) =>
@@ -309,7 +317,7 @@ export default function NewInvoiceRoute() {
                 />
                 <input
                   disabled
-                  value={subtotals[idx]}
+                  value={subtotals[idx] + item.itemDiscount * item.itemQuantity}
                   type="number"
                   className="col-span-2 sm:col-span-5 text-right font-medium block py-2.5 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
                 />
@@ -337,9 +345,31 @@ export default function NewInvoiceRoute() {
                 <textarea
                   rows={1}
                   name="itemDescription"
-                  placeholder="Item description"
-                  className="col-span-10 sm:col-[2/22] bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                  placeholder="Item size"
+                  className="col-span-8 sm:col-[2/17] bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
                 ></textarea>
+                <input
+                  name="itemDiscount"
+                  placeholder="Discount"
+                  type="number"
+                  min={0}
+                  max={item.itemPrice}
+                  onChange={(e) =>
+                    setItems(
+                      items.map((item, index) => {
+                        if (index === idx) {
+                          return {
+                            ...item,
+                            itemDiscount: Number(e.target.value),
+                          };
+                        } else {
+                          return item;
+                        }
+                      })
+                    )
+                  }
+                  className="text-right col-span-2 sm:col-span-5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                />
               </p>
             ))}
           </div>
@@ -349,7 +379,12 @@ export default function NewInvoiceRoute() {
               onClick={() =>
                 setItems([
                   ...items,
-                  { itemName: "", itemPrice: 0, itemQuantity: 1 },
+                  {
+                    itemName: "",
+                    itemPrice: 0,
+                    itemDiscount: 0,
+                    itemQuantity: 1,
+                  },
                 ])
               }
               className="col-span-full sm:col-span-4 sm:col-start-2 font-medium rounded-lg text-xs px-3 py-2 text-slate-900 border border-slate-900 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
@@ -361,12 +396,37 @@ export default function NewInvoiceRoute() {
             </span>
             <input
               disabled
+              value={
+                total +
+                items
+                  .map((i) => i.itemDiscount * i.itemQuantity)
+                  .reduce((p, n) => p + n, 0)
+              }
+              type="number"
+              className="sm:col-span-5 text-right font-bold block w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+            />
+            <span className="sm:col-span-8 sm:col-start-[14] sm:text-right text-sm pr-1 font-bold block w-full text-gray-900">
+              Discount Total (Rs.)
+            </span>
+            <input
+              disabled
+              value={items
+                .map((i) => i.itemDiscount * i.itemQuantity)
+                .reduce((p, n) => p + n, 0)}
+              type="number"
+              className="sm:col-span-5 text-right font-bold block w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
+            />
+            <span className="sm:col-span-8 sm:col-start-[14] sm:text-right text-sm pr-1 font-bold block w-full text-gray-900">
+              After Discount (Rs.)
+            </span>
+            <input
+              disabled
               value={total}
               type="number"
               className="sm:col-span-5 text-right font-bold block w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
             />
             <span className="sm:col-span-8 sm:col-start-[14] sm:text-right text-sm pr-1 font-bold block py-2.5 w-full text-gray-900">
-              Amount Paid (Rs.)
+              Advance Payment (Rs.)
             </span>
             <input
               name="amountPaid"
@@ -379,7 +439,7 @@ export default function NewInvoiceRoute() {
               className="sm:col-span-5 text-right bg-gray-50 border border-gray-300 text-gray-900 text-sm font-bold rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full py-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
             />
             <span className="sm:col-span-8 sm:col-start-[14] sm:text-right text-sm pr-1 font-bold block py-2.5 w-full text-gray-900">
-              Amount Due (Rs.)
+              Remaining Payment (Rs.)
             </span>
             <input
               disabled

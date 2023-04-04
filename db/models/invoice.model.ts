@@ -1,6 +1,7 @@
 import {
   Field,
   PrimaryKey,
+  SearchField,
   TigrisCollection,
   TigrisDataTypes,
 } from "@tigrisdata/core";
@@ -21,16 +22,9 @@ export const InvoiceStatuses = [
   "Archived",
 ];
 
-export type WorkStatus =
-  | "Pending"
-  | "In Progress"
-  | "Complete"
+export type WorkStatus = "Pending" | "In Progress" | "Complete";
 
-export const WorkStatuses = [
-  "Pending",
-  "In Progress",
-  "Complete",
-];
+export const WorkStatuses = ["Pending", "In Progress", "Complete"];
 
 @TigrisCollection("invoices")
 export class Invoice {
@@ -40,9 +34,11 @@ export class Invoice {
   @Field()
   userId?: string;
 
+  @SearchField()
   @Field()
   invoiceNumber?: string;
 
+  @SearchField()
   @Field()
   customer!: Customer;
 
