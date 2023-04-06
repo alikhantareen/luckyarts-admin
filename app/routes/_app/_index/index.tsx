@@ -2,17 +2,12 @@ import { NavLink } from "react-router-dom";
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { invoicesCollection } from "lib/invoice.server";
-import { transactionsCollection } from "lib/transaction.server";
-import { FindQueryOptions, Order } from "@tigrisdata/core/dist/types";
+import { findTransactions } from "lib/transaction.server";
 
 export async function loader() {
   const invoiceCursor = invoicesCollection.findMany();
   const invoice = await invoiceCursor.toArray();
-  const transactionsCursor = transactionsCollection.findMany({
-    options: new FindQueryOptions(10, 0),
-    sort: { field: "transactionDate", order: Order.DESC },
-  });
-  const transactions = await transactionsCursor.toArray();
+  const transactions = await findTransactions();
   return json({ invoice, transactions });
 }
 

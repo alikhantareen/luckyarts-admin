@@ -1,6 +1,7 @@
 import {
   Field,
   PrimaryKey,
+  SearchField,
   TigrisCollection,
   TigrisDataTypes,
 } from "@tigrisdata/core";
@@ -21,6 +22,7 @@ export class Transaction {
   @Field(TigrisDataTypes.INT32)
   transactionAmount!: number;
 
+  @SearchField({ sort: true })
   @Field()
   transactionDate!: Date;
 

@@ -1,10 +1,11 @@
-import { LogicalOperator, Order, SelectorFilterOperator } from "@tigrisdata/core";
+import { LogicalOperator, SelectorFilterOperator } from "@tigrisdata/core";
 import type { Invoice, InvoiceStatus, WorkStatus } from "db/models/invoice.model";
 import { getNextSequence } from "./counter.server";
 import tigrisDB from "./db.server";
 
 // Update relavant const on client page: app/routes/_app/invoices/_index/index.tsx
 const PAGE_SIZE = 5;
+
 
 export const invoicesCollection = tigrisDB.getCollection<Invoice>("invoices");
 
@@ -35,7 +36,7 @@ export async function findInvoices(
       ],
       filter: filter,
       hitsPerPage: PAGE_SIZE,
-      sort: { field: "createdAt", order: Order.DESC },
+      sort: { field: "createdAt", order: "$desc" },
     },
     page
   );

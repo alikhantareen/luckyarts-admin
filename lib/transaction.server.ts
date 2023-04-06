@@ -2,6 +2,7 @@ import { InvoiceStatus } from "db/models/invoice.model";
 import { Transaction } from "db/models";
 import tigrisDB from "./db.server";
 import { invoicesCollection } from "./invoice.server";
+import { FindQueryOptions } from "@tigrisdata/core";
 
 export const transactionsCollection =
   tigrisDB.getCollection<Transaction>("transactions");
@@ -63,4 +64,13 @@ export async function createNewTransaction(transaction: Transaction) {
   else {
     throw "Failed to create Transaction: Invalid transaction status";
   }
+}
+
+export async function findTransactions() {
+  const transactionsCursor = transactionsCollection.findMany({
+    sort: { field: "transactionDate", order: "$desc" },
+    options: new FindQueryOptions(10, 0),
+  });
+  const transactions = await transactionsCursor.toArray();
+  return transactions
 }

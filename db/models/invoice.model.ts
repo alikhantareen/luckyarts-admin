@@ -34,11 +34,11 @@ export class Invoice {
   @Field()
   userId?: string;
 
-  @SearchField()
+  @SearchField({ sort: true, facet: true })
   @Field()
   invoiceNumber?: string;
 
-  @SearchField()
+  @SearchField({ sort: true, facet: true })
   @Field()
   customer!: Customer;
 
@@ -57,9 +57,11 @@ export class Invoice {
   @Field(TigrisDataTypes.INT32)
   amountDue?: number;
 
+  @SearchField({ sort: true })
   @Field(TigrisDataTypes.DATE_TIME, { timestamp: "createdAt" })
   createdAt?: Date;
 
+  @SearchField({ sort: true })
   @Field(TigrisDataTypes.DATE_TIME, { timestamp: "updatedAt" })
   updatedAt?: Date;
 }
