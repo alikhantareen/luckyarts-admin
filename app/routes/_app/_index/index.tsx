@@ -1,11 +1,20 @@
 import { NavLink } from "react-router-dom";
-import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
-import { invoicesCollection } from "lib/invoice.server";
+import { ActionArgs, LoaderArgs, json } from "@remix-run/node";
+import { Form, useLoaderData } from "@remix-run/react";
+import { findInvoices, findInvoicesWithDate, invoicesCollection } from "lib/invoice.server";
 import { findTransactions } from "lib/transaction.server";
 
-export async function loader() {
-  const invoiceCursor = invoicesCollection.findMany();
+export async function loader({ request }: LoaderArgs) {
+  const url = new URL(request.url);
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+  
+  if (from && to) {
+    const invoice = await findInvoicesWithDate(from!, to!);
+    const transactions = await findTransactions();
+    return json({ invoice, transactions });
+  }
+  const invoiceCursor = invoicesCollection.findMany()
   const invoice = await invoiceCursor.toArray();
   const transactions = await findTransactions();
   return json({ invoice, transactions });
@@ -20,9 +29,12 @@ export default function Index() {
       }
       return accum;
     }, 0);
-    return accumulatedValue
+    return accumulatedValue;
   }
-  function invoicesPaymentCalculator(condition: string, invoice: Array<any>): any {
+  function invoicesPaymentCalculator(
+    condition: string,
+    invoice: Array<any>
+  ): any {
     const accumulator = invoice.reduce((accum, current) => {
       if (current.status?.toString().toLocaleLowerCase() === condition) {
         accum = accum + Number(current.amountDue);
@@ -44,7 +56,7 @@ export default function Index() {
       }
       return accum;
     }, 0);
-    return counter
+    return counter;
   }
   return (
     <div className="p-2 md:p-4 bg-[#f9fafb] h-screen w-full">
@@ -53,29 +65,31 @@ export default function Index() {
       </h1>
       <div className="flex flex-col gap-5 justify-center items-center md:flex-row md:flex-wrap">
         <div className="bg-white rounded-lg border-2 border-slate-300 p-4 md:p-8 mt-5 flex flex-col gap-5 w-full flex-1">
-          <div className="flex flex-col md:flex-row gap-5">
-            <div className="flex items-center gap-3">
-              <p className="font-bold">From</p>
-              <input
-                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                type="date"
-                name="initialdate"
-                id="initialdate"
-              />
+          <Form method="get">
+            <div className="flex flex-col md:flex-row gap-5">
+              <div className="flex items-center gap-3">
+                <p className="font-bold">From</p>
+                <input
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  type="date"
+                  name="from"
+                  id="from"
+                />
+              </div>
+              <div className="flex items-center gap-8">
+                <p className="font-bold">To</p>
+                <input
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                  type="date"
+                  name="to"
+                  id="to"
+                />
+              </div>
+              <button className="w-full md:w-fit text-slate-900 bg-[#f3c41a] focus:ring-2 focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-[#f3c41a] focus:outline-none dark:focus:ring-slate-900">
+                Search
+              </button>
             </div>
-            <div className="flex items-center gap-8">
-              <p className="font-bold">To</p>
-              <input
-                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                type="date"
-                name="initialdate"
-                id="initialdate"
-              />
-            </div>
-            <button className="w-full md:w-fit text-slate-900 bg-[#f3c41a] focus:ring-2 focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-[#f3c41a] focus:outline-none dark:focus:ring-slate-900">
-              Search
-            </button>
-          </div>
+          </Form>
           <div className="w-full">
             <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
               Invoices
@@ -86,26 +100,42 @@ export default function Index() {
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Unpaid</p>
-                <p className="text-2xl font-semibold">{invoicesCounter("unpaid", invoice)}</p>
-                <p className="text-xs font-semibold mt-2">Total Unpaid Amount</p>
-                <p className="text-xl font-semibold">Rs. {invoicesPaymentCalculator("unpaid", invoice)}</p>
+                <p className="text-2xl font-semibold">
+                  {invoicesCounter("unpaid", invoice)}
+                </p>
+                <p className="text-xs font-semibold mt-2">
+                  Total Unpaid Amount
+                </p>
+                <p className="text-xl font-semibold">
+                  Rs. {invoicesPaymentCalculator("unpaid", invoice)}
+                </p>
               </NavLink>
               <NavLink
                 to="invoices?status=Partial+Paid"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Partial Paid</p>
-                <p className="text-2xl font-semibold">{invoicesCounter("partial paid", invoice)}</p>
-                <p className="text-xs font-semibold mt-2">Total Partial Paid Amount</p>
-                <p className="text-xl font-semibold">Rs. {invoicesPaymentCalculator("partial paid", invoice)}</p>
+                <p className="text-2xl font-semibold">
+                  {invoicesCounter("partial paid", invoice)}
+                </p>
+                <p className="text-xs font-semibold mt-2">
+                  Total Partial Paid Amount
+                </p>
+                <p className="text-xl font-semibold">
+                  Rs. {invoicesPaymentCalculator("partial paid", invoice)}
+                </p>
               </NavLink>
               <NavLink
                 to="invoices?status=Fully+Paid"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Full Paid</p>
-                <p className="text-2xl font-semibold">{invoicesCounter("fully paid", invoice)}</p>
-                <p className="text-xs font-semibold mt-2">Total Amount Received</p>
+                <p className="text-2xl font-semibold">
+                  {invoicesCounter("fully paid", invoice)}
+                </p>
+                <p className="text-xs font-semibold mt-2">
+                  Total Amount Received
+                </p>
                 <p className="text-xl font-semibold">Rs. {fullyPaidAmount}</p>
               </NavLink>
             </div>
@@ -120,21 +150,27 @@ export default function Index() {
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Pending</p>
-                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("pending", invoice)}</p>
+                <p className="text-2xl font-semibold mt-3">
+                  {ordersStatusCounter("pending", invoice)}
+                </p>
               </NavLink>
               <NavLink
                 to="invoices?workStatus=In+Progress"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">In Progress</p>
-                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("in progress", invoice)}</p>
+                <p className="text-2xl font-semibold mt-3">
+                  {ordersStatusCounter("in progress", invoice)}
+                </p>
               </NavLink>
               <NavLink
                 to="invoices?workStatus=Complete"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Complete</p>
-                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("complete", invoice)}</p>
+                <p className="text-2xl font-semibold mt-3">
+                  {ordersStatusCounter("complete", invoice)}
+                </p>
               </NavLink>
             </div>
           </div>
