@@ -48,28 +48,31 @@ export async function findInvoices(
 }
 
 export async function findInvoicesWithDate(from: string, to: string) {
-    const invoiceCursor = invoicesCollection.findMany({
-      filter: {
-        op: LogicalOperator.AND,
-        selectorFilters: [
-          {
-            op: SelectorFilterOperator.GTE,
-            fields: {
-              createdAt: new Date(from!),
-            },
+  console.log("====================================");
+  console.log(from, to);
+  console.log("====================================");
+  const invoiceCursor = invoicesCollection.findMany({
+    filter: {
+      op: LogicalOperator.AND,
+      selectorFilters: [
+        {
+          op: SelectorFilterOperator.GTE,
+          fields: {
+            createdAt: new Date(`${from}, 00:00:00`),
           },
-          {
-            op: SelectorFilterOperator.LTE,
-            fields: {
-              createdAt: new Date(to!),
-            },
+        },
+        {
+          op: SelectorFilterOperator.LTE,
+          fields: {
+            createdAt: new Date(`${to}, 23:59:00`),
           },
-        ],
-      },
-    });
-    const invoice = await invoiceCursor.toArray();
-    return invoice;
-  }
+        },
+      ],
+    },
+  });
+  const invoice = await invoiceCursor.toArray();
+  return invoice;
+}
 
 function buildFilter(statusFilters: string[], workStatus: string[]) {
   let statusFilter = undefined;
