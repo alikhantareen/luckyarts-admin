@@ -48,9 +48,12 @@ export async function findInvoices(
 }
 
 export async function findInvoicesWithDate(from: string, to: string) {
-  console.log("====================================");
-  console.log(from, to);
-  console.log("====================================");
+  const fromDate = new Date(from);
+  fromDate.setUTCHours(0o0);
+  fromDate.setUTCMinutes(0o0)
+  const toDate = new Date(to);
+  toDate.setUTCHours(23);
+  toDate.setUTCMinutes(59);
   const invoiceCursor = invoicesCollection.findMany({
     filter: {
       op: LogicalOperator.AND,
@@ -58,13 +61,13 @@ export async function findInvoicesWithDate(from: string, to: string) {
         {
           op: SelectorFilterOperator.GTE,
           fields: {
-            createdAt: new Date(`${from}, 00:00:00`),
+            createdAt: fromDate,
           },
         },
         {
           op: SelectorFilterOperator.LTE,
           fields: {
-            createdAt: new Date(`${to}, 23:59:00`),
+            createdAt: toDate,
           },
         },
       ],
