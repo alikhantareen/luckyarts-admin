@@ -49,11 +49,14 @@ export async function findInvoices(
 
 export async function findInvoicesWithDate(from: string, to: string) {
   const fromDate = new Date(from);
-  fromDate.setUTCHours(0o0);
-  fromDate.setUTCMinutes(0o0)
+  fromDate.setUTCHours(-5);
+  fromDate.setUTCMinutes(0O0)
+
   const toDate = new Date(to);
-  toDate.setUTCHours(23);
+  toDate.setUTCHours(18);
   toDate.setUTCMinutes(59);
+  console.log(fromDate, toDate);
+  
   const invoiceCursor = invoicesCollection.findMany({
     filter: {
       op: LogicalOperator.AND,
