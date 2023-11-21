@@ -86,7 +86,7 @@ export default function InvoicesIndexRoute() {
                       ></path>
                     </svg>
                     <Link
-                      to="/invoices"
+                      to="/dashboard/invoices"
                       className="ml-1 text-gray-700 hover:text-primary-600 md:ml-2 dark:text-gray-300 dark:hover:text-white"
                     >
                       Invoices
@@ -124,7 +124,7 @@ export default function InvoicesIndexRoute() {
           <div className="sm:flex mb-2">
             <Form
               method="get"
-              action="/invoices"
+              action="/dashboard/invoices"
               ref={formRef}
               className="items-center mb-3 sm:flex sm:divide-x sm:divide-gray-100 sm:mb-0 dark:divide-gray-700"
             >
@@ -520,7 +520,7 @@ export default function InvoicesIndexRoute() {
                         {invoice.workStatus?.toLocaleUpperCase()}
                       </td>
                       <td className="p-4 space-x-2 whitespace-nowrap">
-                        <Link to={`/invoices/${invoice.id}`}>
+                        <Link to={`/dashboard/invoices/${invoice.id}`}>
                           <button
                             type="button"
                             id="updateProductButton"

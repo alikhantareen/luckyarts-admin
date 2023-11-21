@@ -90,7 +90,7 @@ export const action = async ({ request }: ActionArgs) => {
       };
       await createNewTransaction(transaction);
     }
-    return redirect(`/invoices/${createdInvoice.id}`);
+    return redirect(`/dashboard/invoices/${createdInvoice.id}`);
   }
 };
 
@@ -151,7 +151,7 @@ export default function NewInvoiceRoute() {
                 ></path>
               </svg>
               <Link
-                to="/invoices"
+                to="/dashboard/invoices"
                 className="ml-1 text-gray-700 hover:text-primary-600 md:ml-2 dark:text-gray-300 dark:hover:text-white"
               >
                 Invoices
@@ -185,7 +185,7 @@ export default function NewInvoiceRoute() {
       <h2 className="mb-4 text-3xl font-bold text-gray-900">
         Add a new invoice
       </h2>
-      <Form method="post" action="/invoices/new">
+      <Form method="post" action="/dashboard/invoices/new">
         <fieldset
           disabled={transition.state === "submitting"}
           className="grid gap-4 sm:grid-cols-2"

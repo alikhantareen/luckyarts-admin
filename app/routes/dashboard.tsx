@@ -3,9 +3,10 @@ import { Link, Outlet, useLoaderData } from "@remix-run/react";
 import { initDrawers, initDropdowns } from "flowbite";
 import { getUser } from "lib/session.server";
 import { useEffect } from "react";
-import logo from "../../assets/luckyartsLogo.png"
+import logo from "../assets/luckyartsLogo.png"
 
 export async function loader({ request }: LoaderArgs) {
+  console.log("LOADER INDEX")
   const user = await getUser(request);
   if (!user) {
     throw redirect("/login");
@@ -143,7 +144,7 @@ export default function App() {
             </li>
             <li>
               <Link
-                to="/invoices/"
+                to="/dashboard/invoices/"
                 className="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <svg

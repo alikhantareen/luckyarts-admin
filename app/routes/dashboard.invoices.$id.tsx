@@ -8,7 +8,7 @@ import {
 } from "@remix-run/react";
 import { invoicesCollection } from "lib/invoice.server";
 import { transactionsCollection } from "lib/transaction.server";
-import logo from "../../../../assets/luckyartsLogo.png";
+import logo from "../assets/luckyartsLogo.png";
 import ReactToPrint from "react-to-print";
 import React, { useEffect, useRef, useState } from "react";
 import { Invoice, Transaction } from "db/models";
@@ -146,7 +146,7 @@ export default function InvoiceRoute() {
                 ></path>
               </svg>
               <Link
-                to="/invoices"
+                to="/dashboard/invoices"
                 className="ml-1 text-gray-700 hover:text-primary-600 md:ml-2 dark:text-gray-300 dark:hover:text-white"
               >
                 Invoices
@@ -238,7 +238,7 @@ export default function InvoiceRoute() {
                 <div>
                   <Form
                     method="post"
-                    action={`/invoices/${invoice?.id}`}
+                    action={`/dashboard/invoices/${invoice?.id}`}
                     className="flex flex-col gap-5"
                   >
                     <label
@@ -352,7 +352,7 @@ export default function InvoiceRoute() {
                 </svg>
               </button>
             </div>
-            <Form method="post" action={`/invoices/${invoice?.id}`}>
+            <Form method="post" action={`/dashboard/invoices/${invoice?.id}`}>
               <div className="p-6 space-y-6">
                 <div className="flex mb-4 flex-col">
                   <div className="flex gap-4 items-center mb-4">
