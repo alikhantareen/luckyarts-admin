@@ -65,7 +65,7 @@ export default function Index() {
       </h1>
       <div className="flex flex-col gap-5 justify-center items-center md:flex-row md:flex-wrap">
         <div className="bg-white rounded-lg border-2 border-slate-300 p-4 md:p-8 mt-5 flex flex-col gap-5 w-full flex-1">
-          <Form method="get">
+          <Form className="" method="get">
             <div className="flex flex-col md:flex-row gap-5">
               <div className="flex items-center gap-3">
                 <p className="font-bold">From</p>
