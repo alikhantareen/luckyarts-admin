@@ -1,9 +1,7 @@
 import { ActionArgs, LoaderArgs, json } from "@remix-run/node";
 import { Form, NavLink, useLoaderData } from "@remix-run/react";
-import { invoices } from "db/schema";
+import { invoices, transactions as transactionsSchema } from "db/schema";
 import { between, gte, lte } from "drizzle-orm";
-import { findInvoices, findInvoicesWithDate, invoicesCollection } from "lib/invoice.server";
-import { findTransactions } from "lib/transaction.server";
 import { db } from "~/utils/db.server";
 
 export async function loader({ request }: LoaderArgs) {
@@ -26,7 +24,7 @@ export async function loader({ request }: LoaderArgs) {
   } else {
     result = await db.select().from(invoices);
   }
-  const transactions = await findTransactions();
+  const transactions = await db.select().from(transactionsSchema);
   return json({ invoice: result, transactions });
 }
 
@@ -168,8 +166,8 @@ export default function Index() {
             {transactions.map((elem, key) => {
               return (
                 <div key={key} className="w-full flex justify-between">
-                  <p>{new Date(elem.transactionDate).toDateString()}</p>
-                  <p>Rs. {elem.transactionAmount}</p>
+                  <p>{new Date(elem.createdAt).toDateString()}</p>
+                  <p>Rs. {elem.amount}</p>
                 </div>
               );
             })}

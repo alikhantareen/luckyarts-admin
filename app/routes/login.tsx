@@ -37,8 +37,6 @@ export const action = async ({ request }: ActionArgs) => {
   }
 
   const [user] = await db.select().from(users).where(eq(users.email, result.data.email));
-  console.log(bcrypt.hashSync("admin123", 10));
-  console.log({user});
   if (!bcrypt.compareSync(password, user.password)) {
     return json({
       fields: { email, password },

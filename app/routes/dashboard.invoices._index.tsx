@@ -4,7 +4,7 @@ import { Form, Link, useLoaderData, useNavigation, useSearchParams, useSubmit } 
 import { initDropdowns } from "flowbite";
 import { useEffect, useRef } from "react";
 import { db } from "~/utils/db.server";
-import { eq, inArray, and, sql, desc, like, or, SQL } from "drizzle-orm";
+import { eq, inArray, and, sql, desc, like, or } from "drizzle-orm";
 import { InvoiceStatus, InvoiceWorkStatus, customers, invoices } from "db/schema";
 
 // Update relavant const on server: lib/invoice.server.ts

@@ -1,11 +1,5 @@
 import { ActionArgs, json, redirect } from "@remix-run/node";
 import { Form, Link, useNavigation } from "@remix-run/react";
-import { createNewInvoice } from "lib/invoice.server";
-import { createNewTransaction } from "lib/transaction.server";
-import { Customer } from "db/models/customer.model";
-import { Invoice } from "db/models/invoice.model";
-import { Item } from "db/models/item.model";
-import { Transaction } from "db/models/transaction.model";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import { db } from "~/utils/db.server";
@@ -32,7 +26,6 @@ export const InvoiceFormSchema = z.object({
 });
 
 export const action = async ({ request }: ActionArgs) => {
-  console.log("ACTION NEW INVOICE");
   const userId = await requireUserId(request);
   const formData = await request.formData();
   const itemNames = formData.getAll("itemName");
@@ -76,10 +69,6 @@ export const action = async ({ request }: ActionArgs) => {
   }
   const amountDue = totalAmount - amountPaid;
 
-  // create customer
-  // create invoice
-  // create items
-  // create any transaction
   const invoiceId: number = await db.transaction(async (tx) => {
     let res = await tx.insert(customers).values(customer);
     const customerId = Number(res.lastInsertRowid);
@@ -94,40 +83,14 @@ export const action = async ({ request }: ActionArgs) => {
     }
     return invoiceId;
   });
-  console.log({ invoiceId });
 
-  // const newInvoice: Invoice = {
-  //   userId,
-  //   customer,
-  //   items,
-  //   totalAmount,
-  //   amountDue: totalAmount,
-  // };
-  // const result = InvoiceFormSchema.safeParse(newInvoice);
-  // if (!result.success) return json(result.error);
-  // if (result.success) {
-  //   const createdInvoice = await createNewInvoice(newInvoice);
-  //   if (amountPaid > 0) {
-  //     const transaction: Transaction = {
-  //       invoiceId: createdInvoice.id!,
-  //       userId,
-  //       transactionAmount: amountPaid,
-  //       transactionDate: new Date(),
-  //       transactionStatus: "Payment",
-  //     };
-  //     await createNewTransaction(transaction);
-  //   }
-  //   return redirect(`/dashboard/invoices/${createdInvoice.id}`);
-  // }
-
-  // return redirect(`/dashboard/invoices/${invoiceId}`);
-  return redirect(`/dashboard/invoices/`);
+  return redirect(`/dashboard/invoices/${invoiceId}`);
 };
 
 export default function NewInvoiceRoute() {
   const transition = useNavigation();
 
-  const [items, setItems] = useState<Item[]>([{ itemName: "", itemPrice: 0, itemDiscount: 0, itemQuantity: 1 }]);
+  const [items, setItems] = useState([{ itemName: "", itemPrice: 0, itemDiscount: 0, itemQuantity: 1 }]);
   const [paid, setPaid] = useState(0);
 
   const subtotals = useMemo(

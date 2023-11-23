@@ -4,7 +4,6 @@ import logo from "../assets/luckyartsLogo.png";
 import ReactToPrint from "react-to-print";
 import React, { useEffect, useRef, useState } from "react";
 import { initModals, initDismisses } from "flowbite";
-import { z } from "zod";
 import { db } from "~/utils/db.server";
 import { eq } from "drizzle-orm";
 import {
