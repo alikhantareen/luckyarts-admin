@@ -63,14 +63,37 @@ export default function Index() {
     }, 0);
     return counter;
   }
+  function formatDate(inputDate: any) {
+    const months: any = {
+      Jan: "01",
+      Feb: "02",
+      Mar: "03",
+      Apr: "04",
+      May: "05",
+      Jun: "06",
+      Jul: "07",
+      Aug: "08",
+      Sep: "09",
+      Oct: "10",
+      Nov: "11",
+      Dec: "12",
+    };
+
+    const parts = inputDate.split(" ");
+    const day = parts[2];
+    const month = months[parts[1]];
+    const year = parts[3];
+
+    return `${day}/${month}/${year}`;
+  }
   return (
     <div className="p-2 md:p-4 bg-[#f9fafb] h-screen w-full">
-      <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Dashboard</h1>
+      <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white font-lemon">Dashboard</h1>
       <div className="flex flex-col gap-5 justify-center items-center md:flex-row md:flex-wrap">
         <div className="bg-white rounded-lg border-2 border-slate-300 p-4 md:p-8 mt-5 flex flex-col gap-5 w-full flex-1">
-          <Form className="" method="get">
-            <div className="flex flex-col md:flex-row gap-5">
-              <div className="flex items-center gap-3">
+          <Form className="w-full" method="get">
+            <div className="w-full flex flex-col md:flex-row gap-5">
+              <div className="flex flex-grow items-center gap-3">
                 <p className="font-bold">From</p>
                 <input
                   className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
@@ -79,7 +102,7 @@ export default function Index() {
                   id="from"
                 />
               </div>
-              <div className="flex items-center gap-8">
+              <div className="flex flex-grow items-center gap-8">
                 <p className="font-bold">To</p>
                 <input
                   className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
@@ -96,64 +119,182 @@ export default function Index() {
           <div className="w-full">
             <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Invoices</h1>
             <div className="flex flex-col gap-5 md:flex-row mt-5 w-full">
-              <NavLink
-                to="invoices?status=Unpaid"
-                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-              >
-                <p className="text-md font-semibold">Unpaid</p>
-                <p className="text-2xl font-semibold">{invoicesCounter("unpaid", invoice)}</p>
-                <p className="text-xs font-semibold mt-2">Total Unpaid Amount</p>
-                <p className="text-xl font-semibold">Rs. {invoicesPaymentCalculator("unpaid", invoice)}</p>
-              </NavLink>
-              <NavLink
-                to="invoices?status=PartialPaid"
-                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-              >
-                <p className="text-md font-semibold">Partial Paid</p>
-                <p className="text-2xl font-semibold">{invoicesCounter("partialpaid", invoice)}</p>
-                <p className="text-xs font-semibold mt-2">Total Partial Paid Amount</p>
-                <p className="text-xl font-semibold">Rs. {invoicesPaymentCalculator("partialpaid", invoice)}</p>
-              </NavLink>
-              <NavLink
-                to="invoices?status=FullyPaid"
-                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-              >
-                <p className="text-md font-semibold">Full Paid</p>
-                <p className="text-2xl font-semibold">{invoicesCounter("fullypaid", invoice)}</p>
-                <p className="text-xs font-semibold mt-2">Total Amount Received</p>
-                <p className="text-xl font-semibold">Rs. {fullyPaidAmount}</p>
-              </NavLink>
+              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  Unpaid: {invoicesCounter("unpaid", invoice)}
+                </h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                  Unpaid Amount: {invoicesPaymentCalculator("unpaid", invoice)}
+                </p>
+                <NavLink
+                  to="invoices?status=Unpaid"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-red-500 rounded-lg"
+                >
+                  See more
+                  <svg
+                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 14 10"
+                  >
+                    <path
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M1 5h12m0 0L9 1m4 4L9 9"
+                    />
+                  </svg>
+                </NavLink>
+              </div>
+              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  Partial Paid: {invoicesCounter("partialpaid", invoice)}
+                </h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                  Partial Amount: {invoicesPaymentCalculator("partialpaid", invoice)}
+                </p>
+                <NavLink
+                  to="invoices?status=PartialPaid"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-slate-900 bg-yellow-300 rounded-lg"
+                >
+                  See more
+                  <svg
+                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 14 10"
+                  >
+                    <path
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M1 5h12m0 0L9 1m4 4L9 9"
+                    />
+                  </svg>
+                </NavLink>
+              </div>
+              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
+                  Full paid: {invoicesCounter("fullypaid", invoice)}
+                </h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Total Amount: {fullyPaidAmount}</p>
+                <NavLink
+                  to="invoices?status=FullyPaid"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-green-400 rounded-lg"
+                >
+                  See more
+                  <svg
+                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 14 10"
+                  >
+                    <path
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M1 5h12m0 0L9 1m4 4L9 9"
+                    />
+                  </svg>
+                </NavLink>
+              </div>
             </div>
           </div>
           <div>
             <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Orders</h1>
             <div className="flex flex-col gap-5 md:flex-row mt-5">
-              <NavLink
-                to="invoices?workStatus=Pending"
-                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-              >
-                <p className="text-md font-semibold">Pending</p>
-                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("pending", invoice)}</p>
-              </NavLink>
-              <NavLink
-                to="invoices?workStatus=InProgress"
-                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-              >
-                <p className="text-md font-semibold">In Progress</p>
-                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("inprogress", invoice)}</p>
-              </NavLink>
-              <NavLink
-                to="invoices?workStatus=Completed"
-                className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
-              >
-                <p className="text-md font-semibold">Completed</p>
-                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("completed", invoice)}</p>
-              </NavLink>
+              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Pending</h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                  {ordersStatusCounter("pending", invoice)}
+                </p>
+                <NavLink
+                  to="invoices?workStatus=Pending"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-red-500 rounded-lg"
+                >
+                  See more
+                  <svg
+                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 14 10"
+                  >
+                    <path
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M1 5h12m0 0L9 1m4 4L9 9"
+                    />
+                  </svg>
+                </NavLink>
+              </div>
+              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">In Progress</h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                  {ordersStatusCounter("inprogress", invoice)}
+                </p>
+                <NavLink
+                  to="invoices?workStatus=InProgress"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-slate-900 bg-yellow-300 rounded-lg"
+                >
+                  See more
+                  <svg
+                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 14 10"
+                  >
+                    <path
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M1 5h12m0 0L9 1m4 4L9 9"
+                    />
+                  </svg>
+                </NavLink>
+              </div>
+              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Complete</h5>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                  {ordersStatusCounter("completed", invoice)}
+                </p>
+                <NavLink
+                  to="invoices?workStatus=Completed"
+                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-green-400 rounded-lg"
+                >
+                  See more
+                  <svg
+                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 14 10"
+                  >
+                    <path
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M1 5h12m0 0L9 1m4 4L9 9"
+                    />
+                  </svg>
+                </NavLink>
+              </div>
             </div>
           </div>
         </div>
         <div className="bg-white rounded-lg border-2 border-slate-300 p-8 mt-5 flex flex-col gap-5 md:w-96 self-start w-full">
-          <p className="font-bold text-lg">Latest Transactions</p>
+          <p className="font-bold text-lg border-b-2 border-slate-900">Latest Transactions</p>
           {transactions.length === 0 ? (
             <p className="text-sm text-slate-500">No transaction has been made yet.</p>
           ) : (
@@ -165,8 +306,8 @@ export default function Index() {
           <div>
             {transactions.map((elem, key) => {
               return (
-                <div key={key} className="w-full flex justify-between">
-                  <p>{new Date(elem.createdAt).toDateString()}</p>
+                <div key={key} className="w-full flex justify-between border-b-2 border-slate-900 mb-2">
+                  <p>{formatDate(new Date(elem.createdAt).toDateString())}</p>
                   <p>Rs. {elem.amount}</p>
                 </div>
               );

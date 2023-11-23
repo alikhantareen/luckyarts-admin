@@ -65,6 +65,30 @@ export default function InvoicesIndexRoute() {
   const workStatus = searchParams.getAll("workStatus");
   const q = searchParams.get("q");
 
+  function formatDate(inputDate: any) {
+    const months: any = {
+      Jan: "01",
+      Feb: "02",
+      Mar: "03",
+      Apr: "04",
+      May: "05",
+      Jun: "06",
+      Jul: "07",
+      Aug: "08",
+      Sep: "09",
+      Oct: "10",
+      Nov: "11",
+      Dec: "12",
+    };
+
+    const parts = inputDate.split(" ");
+    const day = parts[2];
+    const month = months[parts[1]];
+    const year = parts[3];
+
+    return `${day}/${month}/${year}`;
+  }
+
   useEffect(() => {
     if (typeof window !== "undefined") initDropdowns();
   }, []);
@@ -395,59 +419,59 @@ export default function InvoicesIndexRoute() {
           <div className="inline-block min-w-full align-middle">
             <div className="overflow-hidden shadow">
               <table className="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
-                <thead className="bg-gray-100 dark:bg-gray-700">
+                <thead className="bg-slate-900 dark:bg-gray-700">
                   <tr>
                     <th
                       scope="col"
-                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
                       Invoice Number
                     </th>
                     <th
                       scope="col"
-                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
                       Date
                     </th>
                     <th
                       scope="col"
-                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
                       Customer Name
                     </th>
                     <th
                       scope="col"
-                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
                       Customer Phone
                     </th>
                     <th
                       scope="col"
-                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
                       Total Amount
                     </th>
                     <th
                       scope="col"
-                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
                       Amount Due
                     </th>
                     <th
                       scope="col"
-                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
                       Invoice
                     </th>
                     <th
                       scope="col"
-                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
                       Work
                     </th>
                     <th
                       scope="col"
-                      className="p-4 text-xs font-medium text-left text-gray-500 uppercase dark:text-gray-400"
+                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
                       Actions
                     </th>
@@ -470,7 +494,7 @@ export default function InvoicesIndexRoute() {
                     >
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">#{invoice.id}</td>
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
-                        {new Date(invoice.createdAt!).toDateString()}
+                        {formatDate(new Date(invoice.createdAt!).toDateString())}
                       </td>
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
                         {invoice.customer.name}

@@ -25,6 +25,7 @@ module.exports = {
         },
       },
       fontFamily: {
+        lemon: ["LEMON MILK", "cursive"],
         sans: [
           "Inter",
           "ui-sans-serif",

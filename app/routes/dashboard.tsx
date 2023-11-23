@@ -3,7 +3,8 @@ import { Link, Outlet, useLoaderData } from "@remix-run/react";
 import { initDrawers, initDropdowns } from "flowbite";
 import { useEffect } from "react";
 import { getUser } from "~/utils/session.server";
-import logo from "../assets/luckyartsLogo.png"
+import logo from "../assets/luckyartsLogo.png";
+import user_logo from "../assets/user_avatar.png";
 
 export async function loader({ request }: LoaderArgs) {
   const user = await getUser(request);
@@ -54,10 +55,10 @@ export default function App() {
               <Link to="/" className="flex ml-2 md:mr-24">
                 <img
                   src={logo}
-                  className="h-8 mr-3 rounded-full"
+                  className="h-8 mr-3 rounded-lg"
                   alt="FlowBite Logo"
                 />
-                <span className="self-center text-xl font-semibold md:text-2xl whitespace-nowrap dark:text-white">
+                <span className="self-center font-lemon text-xl font-semibold md:text-2xl whitespace-nowrap dark:text-white">
                   Lucky Arts
                 </span>
               </Link>
@@ -74,7 +75,7 @@ export default function App() {
                     <span className="sr-only">Open user menu</span>
                     <img
                       className="w-8 h-8 rounded-full"
-                      src={logo}
+                      src={user_logo}
                       alt="user"
                     />
                   </button>

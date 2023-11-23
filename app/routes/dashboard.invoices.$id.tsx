@@ -1,6 +1,6 @@
 import { json, LoaderArgs, ActionArgs } from "@remix-run/node";
 import { Link, useLoaderData, Form, useNavigation, useActionData } from "@remix-run/react";
-import logo from "../assets/luckyartsLogo.png";
+import second_logo from "../assets/second_logo.png";
 import ReactToPrint from "react-to-print";
 import React, { useEffect, useRef, useState } from "react";
 import { initModals, initDismisses } from "flowbite";
@@ -18,6 +18,8 @@ import {
   transactions as transactionsSchema,
 } from "db/schema";
 import { requireUserId } from "~/utils/session.server";
+import { FaFacebook, FaGlobe, FaInstagram, FaYoutube, FaWhatsapp, FaLocationDot } from "react-icons/fa6";
+import { SiGmail } from "react-icons/si";
 
 export const action = async ({ request, params }: ActionArgs) => {
   console.log("ACTION INVOICE DETAILS");
@@ -513,126 +515,187 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
   const { invoice, customer, items, transactions } = props;
   const totalDiscount = items.map((i) => (i.discount ?? 0) * i.quantity).reduce((p, n) => p + n, 0);
 
+  function formatDate(inputDate: any) {
+    const months: any = {
+      Jan: "01",
+      Feb: "02",
+      Mar: "03",
+      Apr: "04",
+      May: "05",
+      Jun: "06",
+      Jul: "07",
+      Aug: "08",
+      Sep: "09",
+      Oct: "10",
+      Nov: "11",
+      Dec: "12",
+    };
+
+    const parts = inputDate.split(" ");
+    const day = parts[2];
+    const month = months[parts[1]];
+    const year = parts[3];
+
+    return `${day}/${month}/${year}`;
+  }
+
   return (
-    <div ref={ref} className="p-5 print:p-8">
-      <div className="flex justify-start flex-col gap-3 md:flex-row md:justify-between print:flex-row print:justify-between">
-        <div>
-          <p className="text-2xl md:text-2xl print:text-2xl font-bold">Invoice no. {invoice.id}</p>
-          <p className="text-md md:text-md print:text-md text-slate-500">
-            {new Date(invoice.createdAt!).toDateString()}
+    <div ref={ref} className="mt-4 print:mt-8">
+      <div className="md:relative print:relative md:border-b-[16px] print:border-b-[16px] border-[#fdca01] flex justify-between flex-col gap-2 md:gap-0 print:gap-0 md:flex-row print:flex-row p-2 md:p-0 print:p-0">
+        <div className="flex items-end gap-2 print:items-end">
+          <img width={80} src={second_logo} alt="logo" className="ml-0 md:ml-4 print:ml-4 p-2 bg-[#fdca01]" />
+          <div className="font-lemon flex flex-col items-center">
+            <p className="text-2xl md:text-4xl print:text-4xl font-bold">LUCKY ARTS</p>
+            <p className="text-xs font-semibold">SINCE 1985</p>
+            <p className="text-xs font-semibold md:hidden print:hidden">THE NAME OF QUALITY</p>
+          </div>
+        </div>
+        <div className="flex flex-col justify-center md:justify-end print:justify-end md:items-end print:items-end items-start mr-4">
+          <p className="text-xs font-semibold">Ashfaq Ahmad Khan Khakwani</p>
+          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
+            <FaWhatsapp /> 0307-6667200
+          </p>
+          <p className="text-xs font-semibold">Mudassir Khan Khakwani</p>
+          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
+            <FaWhatsapp /> 0306-6667200
+          </p>
+          <p className="text-xs font-semibold flex items-center gap-1">
+            <SiGmail />
+            lucky_arts72@gmail.com
+          </p>
+          <p className="text-xs font-semibold flex items-center gap-1">
+            <FaLocationDot /> Chowk Fawara, Abdali Road, Near Ghanta Ghar, Multan
           </p>
         </div>
-        <div className="flex flex-col justify-center md:justify-end print:justify-end md:items-end print:items-end items-start gap-2">
-          <img src={logo} alt="logo" width={150} className="rounded-full" />
-          <p className="text-lg font-bold">Lucky Arts Graphic Design</p>
-          <p className="text-sm">Chowk Fawara, Abdali Road, Multan, Pakistan</p>
-          <p className="text-sm">Phone No. +92306-6667200</p>
+        <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute top-[104px] left-[145px] print:left-[144px]">
+          THE NAME OF QUALITY
+        </p>
+      </div>
+      <div className="flex justify-between p-4 mt-2">
+        <div className="flex flex-col">
+          <p className="text-lg font-bold">Customer Details:</p>
+          <p className="text-md italic">{customer.name}</p>
+          <p className="text-md italic">{customer.phone}</p>
+        </div>
+        <div>
+          <p className="text-lg font-bold">
+            Invoice#: <span className="font-normal">{invoice.id}</span>
+          </p>
+          <p className="text-lg font-bold">
+            Date: <span className="font-normal">{formatDate(new Date(invoice.createdAt!).toDateString())}</span>
+          </p>
         </div>
       </div>
-      <div className="mt-2 flex flex-col gap-5 print:flex-row md:flex-row justify-between">
-        <div>
-          <p className="font-bold text-md md:text-md print:text-md md:mb-1">BILLED TO</p>
-          <p className="text-md md:text-md print:text-md text-slate-500 italic">{customer.name}</p>
-          <p className="text-md md:text-md print:text-md text-slate-500 italic">{customer.phone}</p>
-        </div>
+      <div className="p-4">
+        <table className="w-full mt-3 md:mt-2 border-collapse">
+          <tr className="grid grid-cols-5 md:grid-cols-9 print:grid-cols-9 text-right p-2 bg-slate-900 text-white">
+            <th className="col-span-1 text-center text-sm">Sr.No#</th>
+            <th className="col-span-2 md:col-span-4 print:col-span-4 text-center text-sm">Item Description</th>
+            <th className="col-span-1 text-center text-sm">Size</th>
+            <th className="hidden md:block print:block text-center text-sm">Qty</th>
+            <th className="hidden md:block print:block text-center text-sm">Price </th>
+            <th className="col-span-1 text-center text-sm">Amount</th>
+          </tr>
+          {items.map((elem, key) => {
+            return (
+              <tr key={key} className={`grid grid-cols-5 md:grid-cols-9 print:grid-cols-9`}>
+                <td className="col-span-1 text-center border-2 border-slate-900">
+                  <p className="">{key + 1}</p>
+                </td>
+                <td className="col-span-2 md:col-span-4 print:col-span-4 text-left px-2 border-2 border-slate-900">
+                  <p className="">{elem.name}</p>
+                  {/* <p className="flex md:hidden print:hidden">
+                    {elem.quantity} x {elem.price}
+                  </p> */}
+                </td>
+                <td className="col-span-1 text-center border-2 border-slate-900">{elem.description}</td>
+                <td className="hidden md:block print:block text-center border-2 border-slate-900">{elem.quantity}</td>
+                <td className="hidden md:block print:block text-center border-2 border-slate-900">{elem.price}</td>
+                <td className="border-2 border-slate-900 text-center">{`${elem.quantity * elem.price}`}</td>
+              </tr>
+            );
+          })}
+          <div className="w-full flex justify-end">
+            <div className="border-2 border-slate-900 w-[18rem] flex flex-col">
+              <div className="p-2">
+                <span className="flex justify-between">
+                  <p>Net Total:</p>
+                  <p>{invoice.totalAmount + totalDiscount}</p>
+                </span>
+                <span className="flex justify-between">
+                  <p>Discount Total:</p>
+                  <p>{totalDiscount}</p>
+                </span>
+                <span className="flex justify-between">
+                  <p>After Discount:</p>
+                  <p>{invoice.totalAmount}</p>
+                </span>
+                <span className="flex justify-between">
+                  <p>Advance Payment:</p>
+                  <p>
+                    {transactions.reduce((acc, obj) => {
+                      return acc + obj.amount;
+                    }, 0)}
+                  </p>
+                </span>
+              </div>
+              <div>
+                <span
+                  className={`p-2 flex justify-between text-left font-semibold md:text-lg print:text-lg text-slate-900 ${
+                    invoice.amountDue! > 0 ? "bg-[#fdca01] " : ""
+                  }`}
+                >
+                  <p>{invoice.amountDue! > 0 ? "Remaining Payment:  " : "FULLY PAID ✅"}</p>
+                  <p
+                    className={`md:col-span-1 print:col-span-1 md:text-lg print:text-lg font-semibold text-slate-900 ${
+                      invoice.amountDue! > 0 ? "bg-[#fdca01]" : ""
+                    }`}
+                  >
+                    {invoice.amountDue! > 0 ? invoice.amountDue! : ""}
+                  </p>
+                </span>
+              </div>
+            </div>
+          </div>
+        </table>
       </div>
-      <table className="w-full mt-3 md:mt-6">
-        <tr className="grid grid-cols-4 md:grid-cols-6 print:grid-cols-6 text-right p-2 bg-slate-200 text-slate-900 border-b-2 border-slate-300">
-          <th className="col-span-3 text-left">Item</th>
-          <th className="hidden md:block print:block">Qty</th>
-          <th className="hidden md:block print:block">Price (Rs.)</th>
-          <th>Amount (Rs.)</th>
-        </tr>
-        {items.map((elem, key) => {
-          return (
-            <tr
-              key={key}
-              className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 ${
-                key === items.length - 1 ? `border-b-2 border-slate-200` : ""
-              }`}
-            >
-              <td className="col-span-3 text-left">
-                <p className="text-lg">{elem.name}</p>
-                <p className="text-slate-500 text-sm">{elem.description}</p>
-                <p className="flex md:hidden print:hidden">
-                  {elem.quantity} x {elem.price}
-                </p>
-              </td>
-              <td className="hidden md:block print:block">{elem.quantity}</td>
-              <td className="hidden md:block print:block">{elem.price}</td>
-              <td>{`${elem.quantity * elem.price}`}</td>
-            </tr>
-          );
-        })}
-        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}>
-          <td className="col-span-2 text-left">
-            <p className="text-lg"></p>
-            <p className="flex md:hidden print:hidden"></p>
-          </td>
-          <td className=""></td>
-          <td className="text-left md:text-right print:text-right text-md col-span-2 font-semibold text-slate-600">
-            Net Total (Rs.)
-          </td>
-          <td className="col-span-2 md:col-span-1 print:col-span-1">{invoice.totalAmount + totalDiscount}</td>
-        </tr>
-        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}>
-          <td className="col-span-2 text-left">
-            <p className="text-lg"></p>
-            <p className="flex md:hidden print:hidden"></p>
-          </td>
-          <td className=""></td>
-          <td className="text-left md:text-right print:text-right text-md col-span-2 font-semibold text-slate-600">
-            Discount Total (Rs.)
-          </td>
-          <td className="col-span-2 md:col-span-1 print:col-span-1">{totalDiscount}</td>
-        </tr>
-        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}>
-          <td className="col-span-2 text-left">
-            <p className="text-lg"></p>
-            <p className="flex md:hidden print:hidden"></p>
-          </td>
-          <td className=""></td>
-          <td className="text-left md:text-right print:text-right text-md col-span-2 font-semibold text-slate-600">
-            After Discount (Rs.)
-          </td>
-          <td className="col-span-2 md:col-span-1 print:col-span-1">{invoice.totalAmount}</td>
-        </tr>
-        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}>
-          <td className="hidden md:block print:block col-span-2 text-left">
-            <p className="text-lg"></p>
-            <p className="flex md:hidden print:hidden"></p>
-          </td>
-          <td className="hidden md:block print:block"></td>
-          <td className="text-left md:text-right print:text-right col-span-2 font-semibold text-slate-600">
-            Advance Payment (Rs.)
-          </td>
-          <td className="col-span-2 md:col-span-1 print:col-span-1">
-            {transactions.reduce((acc, obj) => {
-              return acc + obj.amount;
-            }, 0)}
-          </td>
-        </tr>
-        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2`}>
-          <td className="col-span-2 text-left">
-            <p className="text-lg"></p>
-            <p className="flex md:hidden print:hidden"></p>
-          </td>
-          <td className=""></td>
-          <td className={`col-span-2 text-left md:text-right print:text-right font-semibold md:text-lg print:text-lg`}>
-            {invoice.amountDue! > 0 ? "Remaining Payment (Rs.)" : "FULLY PAID ✅"}
-          </td>
-          <td className="col-span-2 md:col-span-1 print:col-span-1 md:text-lg print:text-lg font-semibold">
-            {invoice.amountDue! > 0 ? invoice.amountDue! : ""}
-          </td>
-        </tr>
-      </table>
-      <div className="flex flex-col gap-8 md:flex-row print:flex-row justify-between mt-16">
+      <div className="p-4">
+        <p className="font-bold text-xl">Thank you for being our valuable customer 😊</p>
+      </div>
+      <div className="flex flex-col gap-8 md:flex-row print:flex-row justify-between p-4">
         <div>
-          <p className="font-bold">NOTE</p>
-          <ol className="list-decimal list-inside">
-            <li>Any technical glitches may delay the work.</li>
-            <li>Advance will not be refunded in case of order cancellation.</li>
+          <p className="font-bold text-md">TERMS & CONDITIONS</p>
+          <ol className="list-decimal list-inside text-sm">
+            <li>Any technical glitches may delay the work</li>
+            <li>Advance will not be refunded in case of order cancellation</li>
           </ol>
+        </div>
+      </div>
+      <div className="p-4">
+        <p className="font-bold text-lg flex flex-col">
+          Follow us on Daraz for online shopping
+          <span className="text-sm font-semibold">www.daraz.pk/shop/lucky-arts-1681900840</span>
+        </p>
+      </div>
+      <div className="flex flex-col md:flex-row print:flex-row justify-between items-center p-4">
+        <div className="flex gap-1 text-sm">
+          <span className="flex items-center gap-1">
+            <FaGlobe /> www.luckyarts.pk
+          </span>
+          <span className="flex items-center gap-1">
+            <FaFacebook /> @luckyarts.pk
+          </span>
+          <span className="flex items-center gap-1">
+            <FaInstagram /> @luckyarts.pk
+          </span>
+          <span className="flex items-center gap-1">
+            <FaYoutube />
+            @luckyarts.pk
+          </span>
+        </div>
+        <div className="flex flex-col gap-1 items-center">
+          <span>_________________________________</span>
+          <span>Authorized Signature</span>
         </div>
       </div>
     </div>
