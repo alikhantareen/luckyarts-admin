@@ -1,12 +1,11 @@
 import { json, LoaderArgs, redirect } from "@remix-run/node";
 import { Link, Outlet, useLoaderData } from "@remix-run/react";
 import { initDrawers, initDropdowns } from "flowbite";
-import { getUser } from "lib/session.server";
 import { useEffect } from "react";
+import { getUser } from "~/utils/session.server";
 import logo from "../assets/luckyartsLogo.png"
 
 export async function loader({ request }: LoaderArgs) {
-  console.log("LOADER INDEX")
   const user = await getUser(request);
   if (!user) {
     throw redirect("/login");
@@ -89,13 +88,7 @@ export default function App() {
                       className="text-sm text-gray-900 dark:text-white"
                       role="none"
                     >
-                      {user.fullName}
-                    </p>
-                    <p
-                      className="text-sm font-medium text-gray-900 truncate dark:text-gray-300"
-                      role="none"
-                    >
-                      {user.userName}
+                      {user.email}
                     </p>
                   </div>
                   <ul className="py-1" role="none">

@@ -1,22 +1,33 @@
 import { ActionArgs, LoaderArgs, json } from "@remix-run/node";
 import { Form, NavLink, useLoaderData } from "@remix-run/react";
+import { invoices } from "db/schema";
+import { between, gte, lte } from "drizzle-orm";
 import { findInvoices, findInvoicesWithDate, invoicesCollection } from "lib/invoice.server";
 import { findTransactions } from "lib/transaction.server";
+import { db } from "~/utils/db.server";
 
 export async function loader({ request }: LoaderArgs) {
   const url = new URL(request.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
-  
+
+  let result;
   if (from && to) {
-    const invoice = await findInvoicesWithDate(from!, to!);
-    const transactions = await findTransactions();
-    return json({ invoice, transactions });
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    // const invoice = await findInvoicesWithDate(from!, to!);
+    result = await db.select().from(invoices).where(between(invoices.createdAt, fromDate, toDate));
+  } else if (from) {
+    const fromDate = new Date(from);
+    result = await db.select().from(invoices).where(gte(invoices.createdAt, fromDate));
+  } else if (to) {
+    const toDate = new Date(to);
+    result = await db.select().from(invoices).where(lte(invoices.createdAt, toDate));
+  } else {
+    result = await db.select().from(invoices);
   }
-  const invoiceCursor = invoicesCollection.findMany()
-  const invoice = await invoiceCursor.toArray();
   const transactions = await findTransactions();
-  return json({ invoice, transactions });
+  return json({ invoice: result, transactions });
 }
 
 export default function Index() {
@@ -30,10 +41,7 @@ export default function Index() {
     }, 0);
     return accumulatedValue;
   }
-  function invoicesPaymentCalculator(
-    condition: string,
-    invoice: Array<any>
-  ): any {
+  function invoicesPaymentCalculator(condition: string, invoice: Array<any>): any {
     const accumulator = invoice.reduce((accum, current) => {
       if (current.status?.toString().toLocaleLowerCase() === condition) {
         accum = accum + Number(current.amountDue);
@@ -43,7 +51,7 @@ export default function Index() {
     return accumulator;
   }
   const fullyPaidAmount = invoice.reduce((accum, current) => {
-    if (current.status?.toString().toLocaleLowerCase() === "fully paid") {
+    if (current.status?.toString().toLocaleLowerCase() === "fullypaid") {
       accum = accum + Number(current.totalAmount);
     }
     return accum;
@@ -59,9 +67,7 @@ export default function Index() {
   }
   return (
     <div className="p-2 md:p-4 bg-[#f9fafb] h-screen w-full">
-      <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
-        Dashboard
-      </h1>
+      <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Dashboard</h1>
       <div className="flex flex-col gap-5 justify-center items-center md:flex-row md:flex-wrap">
         <div className="bg-white rounded-lg border-2 border-slate-300 p-4 md:p-8 mt-5 flex flex-col gap-5 w-full flex-1">
           <Form className="" method="get">
@@ -90,86 +96,60 @@ export default function Index() {
             </div>
           </Form>
           <div className="w-full">
-            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
-              Invoices
-            </h1>
+            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Invoices</h1>
             <div className="flex flex-col gap-5 md:flex-row mt-5 w-full">
               <NavLink
                 to="invoices?status=Unpaid"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Unpaid</p>
-                <p className="text-2xl font-semibold">
-                  {invoicesCounter("unpaid", invoice)}
-                </p>
-                <p className="text-xs font-semibold mt-2">
-                  Total Unpaid Amount
-                </p>
-                <p className="text-xl font-semibold">
-                  Rs. {invoicesPaymentCalculator("unpaid", invoice)}
-                </p>
+                <p className="text-2xl font-semibold">{invoicesCounter("unpaid", invoice)}</p>
+                <p className="text-xs font-semibold mt-2">Total Unpaid Amount</p>
+                <p className="text-xl font-semibold">Rs. {invoicesPaymentCalculator("unpaid", invoice)}</p>
               </NavLink>
               <NavLink
-                to="invoices?status=Partial+Paid"
+                to="invoices?status=PartialPaid"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Partial Paid</p>
-                <p className="text-2xl font-semibold">
-                  {invoicesCounter("partial paid", invoice)}
-                </p>
-                <p className="text-xs font-semibold mt-2">
-                  Total Partial Paid Amount
-                </p>
-                <p className="text-xl font-semibold">
-                  Rs. {invoicesPaymentCalculator("partial paid", invoice)}
-                </p>
+                <p className="text-2xl font-semibold">{invoicesCounter("partialpaid", invoice)}</p>
+                <p className="text-xs font-semibold mt-2">Total Partial Paid Amount</p>
+                <p className="text-xl font-semibold">Rs. {invoicesPaymentCalculator("partialpaid", invoice)}</p>
               </NavLink>
               <NavLink
-                to="invoices?status=Fully+Paid"
+                to="invoices?status=FullyPaid"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Full Paid</p>
-                <p className="text-2xl font-semibold">
-                  {invoicesCounter("fully paid", invoice)}
-                </p>
-                <p className="text-xs font-semibold mt-2">
-                  Total Amount Received
-                </p>
+                <p className="text-2xl font-semibold">{invoicesCounter("fullypaid", invoice)}</p>
+                <p className="text-xs font-semibold mt-2">Total Amount Received</p>
                 <p className="text-xl font-semibold">Rs. {fullyPaidAmount}</p>
               </NavLink>
             </div>
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">
-              Orders
-            </h1>
+            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Orders</h1>
             <div className="flex flex-col gap-5 md:flex-row mt-5">
               <NavLink
                 to="invoices?workStatus=Pending"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#dd2822] rounded-lg shadow hover:bg-[#f40901] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">Pending</p>
-                <p className="text-2xl font-semibold mt-3">
-                  {ordersStatusCounter("pending", invoice)}
-                </p>
+                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("pending", invoice)}</p>
               </NavLink>
               <NavLink
-                to="invoices?workStatus=In+Progress"
+                to="invoices?workStatus=InProgress"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#f3c41a] rounded-lg shadow hover:bg-[#FFCB06] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
                 <p className="text-md font-semibold">In Progress</p>
-                <p className="text-2xl font-semibold mt-3">
-                  {ordersStatusCounter("in progress", invoice)}
-                </p>
+                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("inprogress", invoice)}</p>
               </NavLink>
               <NavLink
-                to="invoices?workStatus=Complete"
+                to="invoices?workStatus=Completed"
                 className="flex flex-col justify-center items-center text-slate-50 w-full h-40 md:w-60 md:h-32 p-6 bg-[#379d37] rounded-lg shadow hover:bg-[#2ab52a] dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700 hover:-translate-y-1 duration-200 drop-shadow-xl"
               >
-                <p className="text-md font-semibold">Complete</p>
-                <p className="text-2xl font-semibold mt-3">
-                  {ordersStatusCounter("complete", invoice)}
-                </p>
+                <p className="text-md font-semibold">Completed</p>
+                <p className="text-2xl font-semibold mt-3">{ordersStatusCounter("completed", invoice)}</p>
               </NavLink>
             </div>
           </div>
@@ -177,9 +157,7 @@ export default function Index() {
         <div className="bg-white rounded-lg border-2 border-slate-300 p-8 mt-5 flex flex-col gap-5 md:w-96 self-start w-full">
           <p className="font-bold text-lg">Latest Transactions</p>
           {transactions.length === 0 ? (
-            <p className="text-sm text-slate-500">
-              No transaction has been made yet.
-            </p>
+            <p className="text-sm text-slate-500">No transaction has been made yet.</p>
           ) : (
             <div className="w-full flex justify-between">
               <p className="font-bold">Date</p>

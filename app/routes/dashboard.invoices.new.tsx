@@ -1,7 +1,6 @@
 import { ActionArgs, json, redirect } from "@remix-run/node";
 import { Form, Link, useNavigation } from "@remix-run/react";
 import { createNewInvoice } from "lib/invoice.server";
-import { requireUserId } from "lib/session.server";
 import { createNewTransaction } from "lib/transaction.server";
 import { Customer } from "db/models/customer.model";
 import { Invoice } from "db/models/invoice.model";
@@ -9,28 +8,31 @@ import { Item } from "db/models/item.model";
 import { Transaction } from "db/models/transaction.model";
 import { useMemo, useState } from "react";
 import { z } from "zod";
+import { db } from "~/utils/db.server";
+import { customers, invoices, items as itemsSchema, transactions } from "db/schema";
+import { requireUserId } from "~/utils/session.server";
 
-export const invoiceSchema = z.object({
+export const InvoiceFormSchema = z.object({
   customer: z.object({
-    customerName: z.string().min(1, { message: "Customer name is required" }),
-    customerPhone: z.string().min(1, { message: "Customer phone is required" }),
+    name: z.string().min(1, { message: "Customer name is required" }),
+    phone: z.string().min(1, { message: "Customer phone is required" }),
   }),
   items: z
     .array(
       z.object({
-        itemName: z.string().min(1, { message: "Item name is required" }),
-        itemPrice: z.number().min(0, { message: "Item price is required" }),
-        itemQuantity: z.number().min(1, { message: "Item price is required" }),
-        itemDescription: z.string(),
+        name: z.string().min(1, { message: "Item name is required" }),
+        price: z.number().min(0, { message: "Item price is required" }),
+        quantity: z.number().min(1, { message: "Item quantity is required" }),
+        description: z.string().optional(),
+        discount: z.number().optional(),
       })
     )
     .nonempty(),
-  totalAmount: z.number().min(0),
-  amountDue: z.number().min(0),
-  userId: z.string().nonempty(),
+  amountPaid: z.number().min(0),
 });
 
 export const action = async ({ request }: ActionArgs) => {
+  console.log("ACTION NEW INVOICE");
   const userId = await requireUserId(request);
   const formData = await request.formData();
   const itemNames = formData.getAll("itemName");
@@ -39,12 +41,11 @@ export const action = async ({ request }: ActionArgs) => {
   const itemQuantities = formData.getAll("itemQuantity");
   const itemDescriptions = formData.getAll("itemDescription");
   const amountPaid = Number(formData.get("amountPaid"));
-
-  const customer: Customer = {
-    customerName: formData.get("customerName") as string,
-    customerPhone: formData.get("customerPhone") as string,
+  const customer = {
+    name: formData.get("customerName") as string,
+    phone: formData.get("customerPhone") as string,
   };
-  const items: Item[] = [];
+  const items: { name: string; price: number; discount: number; quantity: number; description: string }[] = [];
   for (let i = 0; i < itemNames.length; i++) {
     const itemName = itemNames[i] as string;
     const itemPrice = Number(itemPrices[i]);
@@ -52,54 +53,81 @@ export const action = async ({ request }: ActionArgs) => {
     const itemQuantity = Number(itemQuantities[i]);
     const itemDescription = itemDescriptions[i] as string;
     items.push({
-      itemName,
-      itemPrice,
-      itemDiscount,
-      itemQuantity,
-      itemDescription,
+      name: itemName,
+      price: itemPrice,
+      discount: itemDiscount,
+      quantity: itemQuantity,
+      description: itemDescription,
     });
+  }
+  const parseResult = InvoiceFormSchema.safeParse({ customer, items, amountPaid });
+  if (!parseResult.success) {
+    console.log({ parseError: parseResult.error });
+    return json(parseResult.error);
   }
 
   const totalAmount = items
-    .map((i) => i.itemPrice * i.itemQuantity - i.itemDiscount * i.itemQuantity)
+    .map((i) => i.price * i.quantity - i.discount * i.quantity)
     .reduce((prev, curr) => prev + curr, 0);
   if (amountPaid > totalAmount) {
     return json({
       issues: [{ message: "Amount paid cannot be greater than total amount" }],
     });
   }
+  const amountDue = totalAmount - amountPaid;
 
-  const newInvoice: Invoice = {
-    userId,
-    customer,
-    items,
-    totalAmount,
-    amountDue: totalAmount,
-  };
-  const result = invoiceSchema.safeParse(newInvoice);
-  if (!result.success) return json(result.error);
-  if (result.success) {
-    const createdInvoice = await createNewInvoice(newInvoice);
-    if (amountPaid > 0) {
-      const transaction: Transaction = {
-        invoiceId: createdInvoice.id!,
-        userId,
-        transactionAmount: amountPaid,
-        transactionDate: new Date(),
-        transactionStatus: "Payment",
-      };
-      await createNewTransaction(transaction);
+  // create customer
+  // create invoice
+  // create items
+  // create any transaction
+  const invoiceId: number = await db.transaction(async (tx) => {
+    let res = await tx.insert(customers).values(customer);
+    const customerId = Number(res.lastInsertRowid);
+    const status = amountDue === 0 ? "FullyPaid" : amountDue < totalAmount ? "PartialPaid" : undefined;
+    res = await tx.insert(invoices).values({ userId, customerId, totalAmount, amountDue, status });
+    const invoiceId = Number(res.lastInsertRowid);
+    for (const item of items) {
+      await tx.insert(itemsSchema).values({ ...item, invoiceId });
     }
-    return redirect(`/dashboard/invoices/${createdInvoice.id}`);
-  }
+    if (amountPaid > 0) {
+      await tx.insert(transactions).values({ userId, invoiceId, amount: amountPaid });
+    }
+    return invoiceId;
+  });
+  console.log({ invoiceId });
+
+  // const newInvoice: Invoice = {
+  //   userId,
+  //   customer,
+  //   items,
+  //   totalAmount,
+  //   amountDue: totalAmount,
+  // };
+  // const result = InvoiceFormSchema.safeParse(newInvoice);
+  // if (!result.success) return json(result.error);
+  // if (result.success) {
+  //   const createdInvoice = await createNewInvoice(newInvoice);
+  //   if (amountPaid > 0) {
+  //     const transaction: Transaction = {
+  //       invoiceId: createdInvoice.id!,
+  //       userId,
+  //       transactionAmount: amountPaid,
+  //       transactionDate: new Date(),
+  //       transactionStatus: "Payment",
+  //     };
+  //     await createNewTransaction(transaction);
+  //   }
+  //   return redirect(`/dashboard/invoices/${createdInvoice.id}`);
+  // }
+
+  // return redirect(`/dashboard/invoices/${invoiceId}`);
+  return redirect(`/dashboard/invoices/`);
 };
 
 export default function NewInvoiceRoute() {
   const transition = useNavigation();
 
-  const [items, setItems] = useState<Item[]>([
-    { itemName: "", itemPrice: 0, itemDiscount: 0, itemQuantity: 1 },
-  ]);
+  const [items, setItems] = useState<Item[]>([{ itemName: "", itemPrice: 0, itemDiscount: 0, itemQuantity: 1 }]);
   const [paid, setPaid] = useState(0);
 
   const subtotals = useMemo(
@@ -172,32 +200,21 @@ export default function NewInvoiceRoute() {
                   clipRule="evenodd"
                 ></path>
               </svg>
-              <span
-                className="ml-1 text-gray-400 md:ml-2 dark:text-gray-500"
-                aria-current="page"
-              >
+              <span className="ml-1 text-gray-400 md:ml-2 dark:text-gray-500" aria-current="page">
                 New
               </span>
             </div>
           </li>
         </ol>
       </nav>
-      <h2 className="mb-4 text-3xl font-bold text-gray-900">
-        Add a new invoice
-      </h2>
+      <h2 className="mb-4 text-3xl font-bold text-gray-900">Add a new invoice</h2>
       <Form method="post" action="/dashboard/invoices/new">
-        <fieldset
-          disabled={transition.state === "submitting"}
-          className="grid gap-4 sm:grid-cols-2"
-        >
+        <fieldset disabled={transition.state === "submitting"} className="grid gap-4 sm:grid-cols-2">
           <h3 className="text-lg font-medium text-white px-4 py-2 bg-gray-800 sm:col-span-2 rounded-sm">
             Customer Information
           </h3>
           <p className="w-full px-4 sm:pr-0">
-            <label
-              htmlFor="customerName"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >
+            <label htmlFor="customerName" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Name
             </label>
             <input
@@ -209,10 +226,7 @@ export default function NewInvoiceRoute() {
             />
           </p>
           <p className="w-full px-4 sm:pl-0">
-            <label
-              htmlFor="customerPhone"
-              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >
+            <label htmlFor="customerPhone" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Phone
             </label>
             <input
@@ -230,9 +244,7 @@ export default function NewInvoiceRoute() {
           </h3>
           <div className="overflow-x-auto sm:col-span-2 px-4">
             <div className="grid grid-cols-13 sm:grid-cols-26 gap-2 min-w-[475px]">
-              <label className="block text-sm font-medium text-gray-900 dark:text-white">
-                Sr
-              </label>
+              <label className="block text-sm font-medium text-gray-900 dark:text-white">Sr</label>
               <label className="col-span-6 sm:col-span-12 block text-sm font-medium text-gray-900 dark:text-white">
                 Item
               </label>
@@ -247,10 +259,7 @@ export default function NewInvoiceRoute() {
               </label>
             </div>
             {items.map((item, idx) => (
-              <p
-                className="grid grid-cols-13 sm:grid-cols-26 gap-x-2 gap-y-1 min-w-[475px] mt-3 pb-1"
-                key={idx}
-              >
+              <p className="grid grid-cols-13 sm:grid-cols-26 gap-x-2 gap-y-1 min-w-[475px] mt-3 pb-1" key={idx}>
                 <p className="font-medium block py-2.5 px-1 w-full text-sm text-gray-900 bg-transparent border-0  border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer">
                   {idx + 1}
                 </p>
@@ -396,12 +405,7 @@ export default function NewInvoiceRoute() {
             </span>
             <input
               disabled
-              value={
-                total +
-                items
-                  .map((i) => i.itemDiscount * i.itemQuantity)
-                  .reduce((p, n) => p + n, 0)
-              }
+              value={total + items.map((i) => i.itemDiscount * i.itemQuantity).reduce((p, n) => p + n, 0)}
               type="number"
               className="sm:col-span-5 text-right font-bold block w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
             />
@@ -410,9 +414,7 @@ export default function NewInvoiceRoute() {
             </span>
             <input
               disabled
-              value={items
-                .map((i) => i.itemDiscount * i.itemQuantity)
-                .reduce((p, n) => p + n, 0)}
+              value={items.map((i) => i.itemDiscount * i.itemQuantity).reduce((p, n) => p + n, 0)}
               type="number"
               className="sm:col-span-5 text-right font-bold block w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
             />
@@ -453,9 +455,7 @@ export default function NewInvoiceRoute() {
               type="submit"
               className="w-full sm:w-fit text-slate-900 bg-[#f3c41a] focus:ring-2 focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-[#f3c41a] focus:outline-none dark:focus:ring-slate-900"
             >
-              {transition.state === "submitting"
-                ? "Creating..."
-                : "Create invoice"}
+              {transition.state === "submitting" ? "Creating..." : "Create invoice"}
             </button>
           </p>
         </fieldset>

@@ -1,80 +1,75 @@
-import { json, LoaderArgs, ActionArgs, redirect } from "@remix-run/node";
-import {
-  Link,
-  useLoaderData,
-  Form,
-  useNavigation,
-  useActionData,
-} from "@remix-run/react";
-import { invoicesCollection } from "lib/invoice.server";
-import { transactionsCollection } from "lib/transaction.server";
+import { json, LoaderArgs, ActionArgs } from "@remix-run/node";
+import { Link, useLoaderData, Form, useNavigation, useActionData } from "@remix-run/react";
 import logo from "../assets/luckyartsLogo.png";
 import ReactToPrint from "react-to-print";
 import React, { useEffect, useRef, useState } from "react";
-import { Invoice, Transaction } from "db/models";
 import { initModals, initDismisses } from "flowbite";
-import { requireUserId } from "lib/session.server";
-import { createNewTransaction } from "lib/transaction.server";
 import { z } from "zod";
+import { db } from "~/utils/db.server";
+import { eq } from "drizzle-orm";
+import {
+  Customer,
+  Invoice,
+  InvoiceWorkStatus,
+  Item,
+  Transaction,
+  customers,
+  invoices,
+  items as itemsSchema,
+  transactions as transactionsSchema,
+} from "db/schema";
+import { requireUserId } from "~/utils/session.server";
 
-export const transactionSchema = z.object({
-  transactionAmount: z
-    .number()
-    .min(0, { message: "Transaction cannot be less than 0" }),
-  invoiceId: z.string().min(1),
-  userId: z.string().min(1),
-  transactionStatus: z.string().min(1),
-  transactionDate: z.date(),
-  transactionNote: z.string().optional(),
-});
-
-export const action = async ({ request }: ActionArgs) => {
+export const action = async ({ request, params }: ActionArgs) => {
+  console.log("ACTION INVOICE DETAILS");
   const formData = await request.formData();
-  const workStatus = formData.get("workStatus") as string;
+  const workStatus = formData.get("workStatus") as InvoiceWorkStatus;
   const statusId = formData.get("statusID") as string;
-  const id = formData.get("invoiceId") as string;
   const userId = await requireUserId(request);
   const transactionamount = Number(formData.get("transactionAmount"))!;
-  const date = formData.get("transactionDate") as string;
+  const transactiondate = formData.get("transactionDate") as string;
   const transactionnote = formData.get("transactionNote") as string;
   const { _action } = Object.fromEntries(formData);
+  const { id } = params;
+  const invoiceId = Number(id);
 
   if (_action === "update") {
-    await invoicesCollection.updateOne({
-      filter: { id: statusId },
-      fields: { workStatus: workStatus },
-    });
+    const x = await db.update(invoices).set({ workStatus }).where(eq(invoices.id, invoiceId));
     return json({ success: "workstatusupdate" });
   }
 
   if (_action === "create") {
     if (transactionamount > 0) {
-      const transaction: Transaction = {
-        invoiceId: id!,
-        userId,
-        transactionAmount: transactionamount,
-        transactionDate: new Date(date),
-        transactionNote: transactionnote,
-        transactionStatus: "Payment",
-      };
-      const res = transactionSchema.safeParse(transaction);
-      if (res.success) {
-        await createNewTransaction(transaction);
-        return json({ success: true });
-      } else {
-        return json(res.error);
-      }
+      const date = transactiondate ? new Date(transactiondate) : undefined;
+      await db.transaction(async (tx) => {
+        const [invoice] = await tx.select().from(invoices).where(eq(invoices.id, invoiceId));
+        if (transactionamount > invoice.amountDue) {
+          throw new Error("Transaction amount cannot be greated than amount due");
+        }
+        await tx.insert(transactionsSchema).values({
+          userId,
+          invoiceId,
+          amount: transactionamount,
+          createdAt: date,
+          note: transactionnote,
+        });
+        const amountDue = invoice.amountDue - transactionamount;
+        const status = amountDue === 0 ? "FullyPaid" : "PartialPaid";
+        await tx.update(invoices).set({ status, amountDue }).where(eq(invoices.id, invoiceId));
+      });
+      return json({ success: true });
     }
   }
 };
 
 export async function loader({ params }: LoaderArgs) {
   const { id } = params;
-  const invoice = await invoicesCollection.findOne({ filter: { id } });
-  const transactions = await transactionsCollection
-    .findMany({ filter: { invoiceId: id } })
-    .toArray();
-  return json({ invoice, transactions });
+  const invoiceId = Number(id);
+  const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId));
+  const [customer] = await db.select().from(customers).where(eq(customers.id, invoice.customerId));
+  const items = await db.select().from(itemsSchema).where(eq(itemsSchema.invoiceId, invoiceId));
+  const transactions = await db.select().from(transactionsSchema).where(eq(transactionsSchema.invoiceId, invoiceId));
+  return json({ invoice, customer, items, transactions });
 }
 
 export default function InvoiceRoute() {
@@ -101,7 +96,8 @@ export default function InvoiceRoute() {
     }
   }, [isDisabled]);
 
-  const { invoice, transactions } = useLoaderData<typeof loader>();
+  const { invoice, customer, items, transactions } = useLoaderData<typeof loader>();
+  console.log({ invoice, customer, items, transactions });
   const componentRef = useRef<HTMLDivElement | null>(null);
   const modalHideBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -167,10 +163,7 @@ export default function InvoiceRoute() {
                   clipRule="evenodd"
                 ></path>
               </svg>
-              <span
-                className="ml-1 text-gray-400 md:ml-2 dark:text-gray-500"
-                aria-current="page"
-              >
+              <span className="ml-1 text-gray-400 md:ml-2 dark:text-gray-500" aria-current="page">
                 Deatils
               </span>
             </div>
@@ -195,21 +188,21 @@ export default function InvoiceRoute() {
         <div className="bg-white rounded-lg border-2 border-slate-300 flex-1">
           <InvoiceComponent
             ref={componentRef}
-            invoice={invoice!}
-            transactions={transactions!}
+            invoice={invoice}
+            customer={customer}
+            items={items}
+            transactions={transactions}
           />
         </div>
         <div className="flex flex-col gap-5 md:w-2/6 h-fit">
           <div className="p-5 flex w-full flex-col gap-5 h-fit bg-white rounded-lg border-2 border-slate-300">
-            <p className="border-b-2 border-black font-bold p-2 text-lg">
-              Work Status
-            </p>
-            {invoice?.workStatus?.toLocaleLowerCase() === "complete" ? (
+            <p className="border-b-2 border-black font-bold p-2 text-lg">Work Status</p>
+            {invoice?.workStatus?.toLocaleLowerCase() === "completed" ? (
               <p>
                 Current Status:{" "}
                 <span
                   className={`${
-                    invoice?.workStatus?.toLocaleLowerCase() === "complete"
+                    invoice?.workStatus?.toLocaleLowerCase() === "completed"
                       ? "text-green-500"
                       : invoice?.workStatus?.toLocaleLowerCase() === "pending"
                       ? "text-red-500"
@@ -225,7 +218,7 @@ export default function InvoiceRoute() {
                   Current Status:{" "}
                   <span
                     className={`${
-                      invoice?.workStatus?.toLocaleLowerCase() === "complete"
+                      invoice?.workStatus?.toLocaleLowerCase() === "completed"
                         ? "text-green-500"
                         : invoice?.workStatus?.toLocaleLowerCase() === "pending"
                         ? "text-red-500"
@@ -236,11 +229,7 @@ export default function InvoiceRoute() {
                   </span>
                 </p>
                 <div>
-                  <Form
-                    method="post"
-                    action={`/dashboard/invoices/${invoice?.id}`}
-                    className="flex flex-col gap-5"
-                  >
+                  <Form method="post" action={`/dashboard/invoices/${invoice?.id}`} className="flex flex-col gap-5">
                     <label
                       htmlFor="countries"
                       className="block -mb-2 text-sm font-medium text-gray-900 dark:text-white"
@@ -255,24 +244,17 @@ export default function InvoiceRoute() {
                       <option selected value={"Pending"}>
                         Pending
                       </option>
-                      <option value={"In Progress"}>In progress</option>
-                      <option value={"Complete"}>Complete</option>
+                      <option value={"InProgress"}>In progress</option>
+                      <option value={"Completed"}>Completed</option>
                     </select>
-                    <input
-                      type="text"
-                      hidden
-                      name="statusID"
-                      value={invoice?.id}
-                    />
+                    <input type="text" hidden name="statusID" defaultValue={invoice?.id} />
                     <button
                       name="_action"
                       value="update"
                       type="submit"
                       className="w-fit self-end inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-slate-900 border border-slate-900 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
                     >
-                      {transition.state === "submitting"
-                        ? "Changing..."
-                        : "Change Status"}
+                      {transition.state === "submitting" ? "Changing..." : "Change Status"}
                     </button>
                   </Form>
                 </div>
@@ -280,13 +262,9 @@ export default function InvoiceRoute() {
             )}
           </div>
           <div className="p-5 flex w-full flex-col gap-5 h-fit bg-white rounded-lg border-2 border-slate-300">
-            <p className="border-b-2 border-black font-bold p-2 text-lg">
-              Transaction History
-            </p>
+            <p className="border-b-2 border-black font-bold p-2 text-lg">Transaction History</p>
             {transactions.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                No transaction has been made yet.
-              </p>
+              <p className="text-sm text-slate-500">No transaction has been made yet.</p>
             ) : (
               <div className="w-full flex justify-between">
                 <p className="font-bold">Date</p>
@@ -297,8 +275,8 @@ export default function InvoiceRoute() {
               {transactions.map((elem, key) => {
                 return (
                   <div key={key} className="w-full flex justify-between">
-                    <p>{new Date(elem.transactionDate).toDateString()}</p>
-                    <p>{elem.transactionAmount}</p>
+                    <p>{new Date(elem.createdAt).toDateString()}</p>
+                    <p>{elem.amount}</p>
                   </div>
                 );
               })}
@@ -330,20 +308,13 @@ export default function InvoiceRoute() {
         <div className="relative w-full h-full max-w-2xl md:h-auto">
           <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
             <div className="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                Add transaction
-              </h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Add transaction</h3>
               <button
                 type="button"
                 className="text-gray-400 bg-transparent hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
                 data-modal-hide="staticModal"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                   <path
                     fillRule="evenodd"
                     d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -356,12 +327,7 @@ export default function InvoiceRoute() {
               <div className="p-6 space-y-6">
                 <div className="flex mb-4 flex-col">
                   <div className="flex gap-4 items-center mb-4">
-                    <input
-                      type="text"
-                      name="invoiceId"
-                      hidden
-                      value={invoice?.id}
-                    />
+                    <input type="text" name="invoiceId" hidden value={invoice?.id} />
                     <input
                       id="paid-checkbox"
                       type="checkbox"
@@ -370,10 +336,7 @@ export default function InvoiceRoute() {
                       value=""
                       className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
                     />
-                    <label
-                      htmlFor="paid-checkbox"
-                      className="ml-2 text-lg font-lg text-gray-900 dark:text-gray-300"
-                    >
+                    <label htmlFor="paid-checkbox" className="ml-2 text-lg font-lg text-gray-900 dark:text-gray-300">
                       Fully paid
                     </label>
                   </div>
@@ -415,10 +378,7 @@ export default function InvoiceRoute() {
                     />
                   </div>
 
-                  <label
-                    htmlFor="message"
-                    className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                  >
+                  <label htmlFor="message" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     Note
                   </label>
                   <textarea
@@ -437,16 +397,9 @@ export default function InvoiceRoute() {
                   type="submit"
                   className="text-slate-900 bg-[#f3c41a] focus:ring-2 focus:outline-none focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-bg-[#f3c41a] dark:focus:ring-slate-900"
                 >
-                  {transition.state === "submitting"
-                    ? "Submitting..."
-                    : "Submit"}
+                  {transition.state === "submitting" ? "Submitting..." : "Submit"}
                 </button>
-                <button
-                  hidden
-                  type="button"
-                  data-modal-hide="staticModal"
-                  ref={modalHideBtnRef}
-                ></button>
+                <button hidden type="button" data-modal-hide="staticModal" ref={modalHideBtnRef}></button>
               </div>
             </Form>
           </div>
@@ -474,9 +427,7 @@ export default function InvoiceRoute() {
             </svg>
             <span className="sr-only">Error icon</span>
           </div>
-          <div className="ml-3 text-sm font-normal">
-            Something went wrong. Please try again.
-          </div>
+          <div className="ml-3 text-sm font-normal">Something went wrong. Please try again.</div>
           <button
             type="button"
             className="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
@@ -523,9 +474,7 @@ export default function InvoiceRoute() {
             </svg>
             <span className="sr-only">Check icon</span>
           </div>
-          <div className="ml-3 text-sm font-normal">
-            Operation has been successfully completed.
-          </div>
+          <div className="ml-3 text-sm font-normal">Operation has been successfully completed.</div>
           <button
             type="button"
             className="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
@@ -554,30 +503,22 @@ export default function InvoiceRoute() {
 }
 
 type InvoiceComponentProps = {
-  invoice: Omit<Invoice, "createdAt" | "updatedAt"> & {
+  invoice: Omit<Invoice, "createdAt"> & {
     createdAt?: string;
-    updatedAt?: string;
   };
-  transactions: Array<
-    Omit<Transaction, "transactionDate"> & { transactionDate?: string }
-  >;
+  customer: Customer;
+  items: Item[];
+  transactions: Array<Omit<Transaction, "createdAt"> & { createdAt?: string }>;
 };
-const InvoiceComponent = React.forwardRef<
-  HTMLDivElement | null,
-  InvoiceComponentProps
->((props, ref) => {
-  const { invoice, transactions } = props;
-  const totalDiscount = invoice?.items
-    .map((i) => i.itemDiscount * i.itemQuantity)
-    .reduce((p, n) => p + n, 0);
+const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponentProps>((props, ref) => {
+  const { invoice, customer, items, transactions } = props;
+  const totalDiscount = items.map((i) => (i.discount ?? 0) * i.quantity).reduce((p, n) => p + n, 0);
 
   return (
     <div ref={ref} className="p-5 print:p-8">
       <div className="flex justify-start flex-col gap-3 md:flex-row md:justify-between print:flex-row print:justify-between">
         <div>
-          <p className="text-2xl md:text-2xl print:text-2xl font-bold">
-            Invoice no. {invoice.invoiceNumber}
-          </p>
+          <p className="text-2xl md:text-2xl print:text-2xl font-bold">Invoice no. {invoice.id}</p>
           <p className="text-md md:text-md print:text-md text-slate-500">
             {new Date(invoice.createdAt!).toDateString()}
           </p>
@@ -591,15 +532,9 @@ const InvoiceComponent = React.forwardRef<
       </div>
       <div className="mt-2 flex flex-col gap-5 print:flex-row md:flex-row justify-between">
         <div>
-          <p className="font-bold text-md md:text-md print:text-md md:mb-1">
-            BILLED TO
-          </p>
-          <p className="text-md md:text-md print:text-md text-slate-500 italic">
-            {invoice.customer.customerName}
-          </p>
-          <p className="text-md md:text-md print:text-md text-slate-500 italic">
-            {invoice.customer.customerPhone}
-          </p>
+          <p className="font-bold text-md md:text-md print:text-md md:mb-1">BILLED TO</p>
+          <p className="text-md md:text-md print:text-md text-slate-500 italic">{customer.name}</p>
+          <p className="text-md md:text-md print:text-md text-slate-500 italic">{customer.phone}</p>
         </div>
       </div>
       <table className="w-full mt-3 md:mt-6">
@@ -609,34 +544,28 @@ const InvoiceComponent = React.forwardRef<
           <th className="hidden md:block print:block">Price (Rs.)</th>
           <th>Amount (Rs.)</th>
         </tr>
-        {invoice.items.map((elem, key) => {
+        {items.map((elem, key) => {
           return (
             <tr
               key={key}
               className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 ${
-                key === invoice.items.length - 1
-                  ? `border-b-2 border-slate-200`
-                  : ""
+                key === items.length - 1 ? `border-b-2 border-slate-200` : ""
               }`}
             >
               <td className="col-span-3 text-left">
-                <p className="text-lg">{elem.itemName}</p>
-                <p className="text-slate-500 text-sm">{elem.itemDescription}</p>
+                <p className="text-lg">{elem.name}</p>
+                <p className="text-slate-500 text-sm">{elem.description}</p>
                 <p className="flex md:hidden print:hidden">
-                  {elem.itemQuantity} x {elem.itemPrice}
+                  {elem.quantity} x {elem.price}
                 </p>
               </td>
-              <td className="hidden md:block print:block">
-                {elem.itemQuantity}
-              </td>
-              <td className="hidden md:block print:block">{elem.itemPrice}</td>
-              <td>{`${elem.itemQuantity * elem.itemPrice}`}</td>
+              <td className="hidden md:block print:block">{elem.quantity}</td>
+              <td className="hidden md:block print:block">{elem.price}</td>
+              <td>{`${elem.quantity * elem.price}`}</td>
             </tr>
           );
         })}
-        <tr
-          className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}
-        >
+        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}>
           <td className="col-span-2 text-left">
             <p className="text-lg"></p>
             <p className="flex md:hidden print:hidden"></p>
@@ -645,13 +574,9 @@ const InvoiceComponent = React.forwardRef<
           <td className="text-left md:text-right print:text-right text-md col-span-2 font-semibold text-slate-600">
             Net Total (Rs.)
           </td>
-          <td className="col-span-2 md:col-span-1 print:col-span-1">
-            {invoice.totalAmount + totalDiscount}
-          </td>
+          <td className="col-span-2 md:col-span-1 print:col-span-1">{invoice.totalAmount + totalDiscount}</td>
         </tr>
-        <tr
-          className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}
-        >
+        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}>
           <td className="col-span-2 text-left">
             <p className="text-lg"></p>
             <p className="flex md:hidden print:hidden"></p>
@@ -660,13 +585,9 @@ const InvoiceComponent = React.forwardRef<
           <td className="text-left md:text-right print:text-right text-md col-span-2 font-semibold text-slate-600">
             Discount Total (Rs.)
           </td>
-          <td className="col-span-2 md:col-span-1 print:col-span-1">
-            {totalDiscount}
-          </td>
+          <td className="col-span-2 md:col-span-1 print:col-span-1">{totalDiscount}</td>
         </tr>
-        <tr
-          className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}
-        >
+        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}>
           <td className="col-span-2 text-left">
             <p className="text-lg"></p>
             <p className="flex md:hidden print:hidden"></p>
@@ -675,13 +596,9 @@ const InvoiceComponent = React.forwardRef<
           <td className="text-left md:text-right print:text-right text-md col-span-2 font-semibold text-slate-600">
             After Discount (Rs.)
           </td>
-          <td className="col-span-2 md:col-span-1 print:col-span-1">
-            {invoice.totalAmount}
-          </td>
+          <td className="col-span-2 md:col-span-1 print:col-span-1">{invoice.totalAmount}</td>
         </tr>
-        <tr
-          className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}
-        >
+        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2 print:mb-2`}>
           <td className="hidden md:block print:block col-span-2 text-left">
             <p className="text-lg"></p>
             <p className="flex md:hidden print:hidden"></p>
@@ -692,24 +609,18 @@ const InvoiceComponent = React.forwardRef<
           </td>
           <td className="col-span-2 md:col-span-1 print:col-span-1">
             {transactions.reduce((acc, obj) => {
-              return acc + obj.transactionAmount;
+              return acc + obj.amount;
             }, 0)}
           </td>
         </tr>
-        <tr
-          className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2`}
-        >
+        <tr className={`grid grid-cols-4 p-2 md:grid-cols-6 print:grid-cols-6 text-right md:mb-2`}>
           <td className="col-span-2 text-left">
             <p className="text-lg"></p>
             <p className="flex md:hidden print:hidden"></p>
           </td>
           <td className=""></td>
-          <td
-            className={`col-span-2 text-left md:text-right print:text-right font-semibold md:text-lg print:text-lg`}
-          >
-            {invoice.amountDue! > 0
-              ? "Remaining Payment (Rs.)"
-              : "FULLY PAID ✅"}
+          <td className={`col-span-2 text-left md:text-right print:text-right font-semibold md:text-lg print:text-lg`}>
+            {invoice.amountDue! > 0 ? "Remaining Payment (Rs.)" : "FULLY PAID ✅"}
           </td>
           <td className="col-span-2 md:col-span-1 print:col-span-1 md:text-lg print:text-lg font-semibold">
             {invoice.amountDue! > 0 ? invoice.amountDue! : ""}

@@ -1,12 +1,12 @@
 import { ActionArgs, json, LoaderArgs, redirect } from "@remix-run/node";
 import { useActionData, useSearchParams } from "@remix-run/react";
-import {
-  createUserSession,
-  getUserId,
-  login,
-  LoginFormSchema,
-} from "lib/session.server";
 import logo from "../assets/luckyartsLogo.png";
+import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { db } from "~/utils/db.server";
+import { users } from "db/schema";
+import { eq } from "drizzle-orm";
+import { getUserId, createUserSession } from "~/utils/session.server";
 
 export async function loader({ request }: LoaderArgs) {
   const userId = await getUserId(request);
@@ -16,30 +16,38 @@ export async function loader({ request }: LoaderArgs) {
   return null;
 }
 
+const LoginFormSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1, { message: "Password is required" }),
+});
+
 export const action = async ({ request }: ActionArgs) => {
   const form = await request.formData();
-  const username = form.get("username") as string;
+  const email = form.get("email") as string;
   const password = form.get("password") as string;
   const redirectTo = (form.get("redirectTo") as string) || "/";
 
-  const result = LoginFormSchema.safeParse({ username, password });
-  if (!result.success)
+  const result = LoginFormSchema.safeParse({ email, password });
+  if (!result.success) {
     return json({
-      fields: { username, password },
+      fields: { email, password },
       fieldErrors: result.error.flatten().fieldErrors,
       formError: null,
     });
+  }
 
-  const user = await login({ username, password });
-  if (!user) {
+  const [user] = await db.select().from(users).where(eq(users.email, result.data.email));
+  console.log(bcrypt.hashSync("admin123", 10));
+  console.log({user});
+  if (!bcrypt.compareSync(password, user.password)) {
     return json({
-      fields: { username, password },
+      fields: { email, password },
       fieldErrors: null,
       formError: "Username/Password combination is incorrect",
     });
   }
 
-  return createUserSession(user.userId!, redirectTo);
+  return createUserSession(user.id, redirectTo);
 };
 
 export default function Login() {
@@ -48,15 +56,8 @@ export default function Login() {
   return (
     <section className="bg-gray-50 dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
-        <a
-          href="#"
-          className="flex items-center mb-6 text-3xl font-semibold text-gray-900 dark:text-white"
-        >
-          <img
-            className="w-8 h-8 mr-2 rounded-full"
-            src={logo}
-            alt="logo"
-          />
+        <a href="#" className="flex items-center mb-6 text-3xl font-semibold text-gray-900 dark:text-white">
+          <img className="w-8 h-8 mr-2 rounded-full" src={logo} alt="logo" />
           LUCKY ARTS
         </a>
         <div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
@@ -65,37 +66,25 @@ export default function Login() {
               Sign in to your account
             </h1>
             <form method="post" className="space-y-4 md:space-y-6">
-              <input
-                type="hidden"
-                name="redirectTo"
-                value={searchParams.get("redirectTo") ?? undefined}
-              />
+              <input type="hidden" name="redirectTo" value={searchParams.get("redirectTo") ?? undefined} />
               <div>
-                <label
-                  htmlFor="username"
-                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                >
-                  Username
+                <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Email
                 </label>
                 <input
                   type="text"
-                  name="username"
-                  id="username"
-                  defaultValue={actionData?.fields.username}
-                  placeholder="Enter your username"
+                  name="email"
+                  id="email"
+                  defaultValue={actionData?.fields.email}
+                  placeholder="Enter your email"
                   className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-slate-900 focus:border-slate-900 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 />
-                {actionData?.fieldErrors?.username && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-500">
-                    {actionData?.fieldErrors.username}
-                  </p>
+                {actionData?.fieldErrors?.email && (
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-500">{actionData?.fieldErrors.email}</p>
                 )}
               </div>
               <div>
-                <label
-                  htmlFor="password"
-                  className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                >
+                <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                   Password
                 </label>
                 <input
@@ -107,15 +96,11 @@ export default function Login() {
                   className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-slate-900 focus:border-slate-900 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
                 />
                 {actionData?.fieldErrors?.password && (
-                  <p className="mt-2 text-sm text-red-600 dark:text-red-500">
-                    {actionData?.fieldErrors.password}
-                  </p>
+                  <p className="mt-2 text-sm text-red-600 dark:text-red-500">{actionData?.fieldErrors.password}</p>
                 )}
               </div>
               {actionData?.formError && (
-                <p className="text-sm text-red-600 dark:text-red-500">
-                  {actionData?.formError}
-                </p>
+                <p className="text-sm text-red-600 dark:text-red-500">{actionData?.formError}</p>
               )}
               <button
                 type="submit"

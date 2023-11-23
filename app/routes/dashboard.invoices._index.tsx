@@ -1,34 +1,55 @@
 import type { LoaderArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import {
-  Form,
-  Link,
-  useLoaderData,
-  useNavigation,
-  useSearchParams,
-  useSubmit,
-} from "@remix-run/react";
-import { findInvoices } from "lib/invoice.server";
+import { Form, Link, useLoaderData, useNavigation, useSearchParams, useSubmit } from "@remix-run/react";
 import { initDropdowns } from "flowbite";
 import { useEffect, useRef } from "react";
+import { db } from "~/utils/db.server";
+import { eq, inArray, and, sql, desc, like, or, SQL } from "drizzle-orm";
+import { InvoiceStatus, InvoiceWorkStatus, customers, invoices } from "db/schema";
 
 // Update relavant const on server: lib/invoice.server.ts
 const PAGE_SIZE = 5;
 
 export async function loader({ request }: LoaderArgs) {
   const url = new URL(request.url);
-  const statusFilters = url.searchParams.getAll("status");
-  const workStatus = url.searchParams.getAll("workStatus");
+  let statusFilters = url.searchParams.getAll("status") as InvoiceStatus[];
+  if (statusFilters.length === 0) {
+    statusFilters = ["Unpaid", "PartialPaid", "FullyPaid", "Archived"];
+  }
+  let workStatus = url.searchParams.getAll("workStatus") as InvoiceWorkStatus[];
+  if (workStatus.length === 0) {
+    workStatus = ["Pending", "InProgress", "Completed"];
+  }
   const page = Number(url.searchParams.get("page") || "1");
   const searchQuery = url.searchParams.get("q") || "";
+  const invoiceId = searchQuery.startsWith("#") && parseInt(searchQuery.slice(1));
 
-  const { invoices, total } = await findInvoices(
-    page,
-    statusFilters,
-    searchQuery,
-    workStatus
+  let where = and(
+    inArray(invoices.status, statusFilters),
+    inArray(invoices.workStatus, workStatus),
+    or(like(customers.name, `%${searchQuery}%`), like(customers.phone, `%${searchQuery}%`))
   );
-  return json({ invoices, total });
+  if (invoiceId) {
+    where = eq(invoices.id, invoiceId);
+  }
+  let query = db
+    .select()
+    .from(invoices)
+    .innerJoin(customers, eq(invoices.customerId, customers.id))
+    .where(where)
+    .limit(PAGE_SIZE)
+    .offset((page - 1) * PAGE_SIZE)
+    .orderBy(desc(invoices.createdAt))
+    .$dynamic();
+  const anotherResult = await query;
+  const kk = anotherResult.map(({ invoices, customers }) => ({ ...invoices, customer: customers }));
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(*)` })
+    .from(invoices)
+    .innerJoin(customers, eq(invoices.customerId, customers.id))
+    .where(where);
+
+  return json({ invoices: kk, total });
 }
 
 export default function InvoicesIndexRoute() {
@@ -107,19 +128,14 @@ export default function InvoicesIndexRoute() {
                         clipRule="evenodd"
                       ></path>
                     </svg>
-                    <span
-                      className="ml-1 text-gray-400 md:ml-2 dark:text-gray-500"
-                      aria-current="page"
-                    >
+                    <span className="ml-1 text-gray-400 md:ml-2 dark:text-gray-500" aria-current="page">
                       List
                     </span>
                   </div>
                 </li>
               </ol>
             </nav>
-            <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">
-              All invoices
-            </h1>
+            <h1 className="text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white">All invoices</h1>
           </div>
           <div className="sm:flex mb-2">
             <Form
@@ -136,9 +152,7 @@ export default function InvoicesIndexRoute() {
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                     <svg
                       aria-hidden="true"
-                      className={`w-5 h-5 ${
-                        q ? "text-blue-700" : "text-gray-400"
-                      }`}
+                      className={`w-5 h-5 ${q ? "text-blue-700" : "text-gray-400"}`}
                       fill="currentColor"
                       viewBox="0 0 20 20"
                       xmlns="http://www.w3.org/2000/svg"
@@ -176,9 +190,7 @@ export default function InvoicesIndexRoute() {
                   <svg
                     xmlns="http://www.w2.org/2000/svg"
                     aria-hidden="true"
-                    className={`w-5 h-4 mr-2 ${
-                      status.length === 0 ? "text-gray-400" : "text-[#f3c41a]"
-                    }`}
+                    className={`w-5 h-4 mr-2 ${status.length === 0 ? "text-gray-400" : "text-[#f3c41a]"}`}
                     viewBox="-1 0 20 20"
                     fill="currentColor"
                   >
@@ -203,17 +215,9 @@ export default function InvoicesIndexRoute() {
                     />
                   </svg>
                 </button>
-                <div
-                  id="filterDropdown"
-                  className="z-10 hidden w-48 p-3 bg-white rounded-lg shadow dark:bg-gray-700"
-                >
-                  <h5 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">
-                    Status
-                  </h5>
-                  <ul
-                    className="space-y-3 text-sm"
-                    aria-labelledby="dropdownDefault"
-                  >
+                <div id="filterDropdown" className="z-10 hidden w-48 p-3 bg-white rounded-lg shadow dark:bg-gray-700">
+                  <h5 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">Status</h5>
+                  <ul className="space-y-3 text-sm" aria-labelledby="dropdownDefault">
                     <li className="flex items-center">
                       <input
                         id="Unpaid"
@@ -224,25 +228,22 @@ export default function InvoicesIndexRoute() {
                         onChange={() => submit(formRef.current)}
                         className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
-                      <label
-                        htmlFor="Unpaid"
-                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
-                      >
+                      <label htmlFor="Unpaid" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                         Unpaid
                       </label>
                     </li>
                     <li className="flex items-center">
                       <input
-                        id="Partial Paid"
+                        id="PartialPaid"
                         type="checkbox"
-                        value="Partial Paid"
+                        value="PartialPaid"
                         name="status"
-                        defaultChecked={status.includes("Partial Paid")}
+                        defaultChecked={status.includes("PartialPaid")}
                         onChange={() => submit(formRef.current)}
                         className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
                       <label
-                        htmlFor="Partial Paid"
+                        htmlFor="PartialPaid"
                         className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
                       >
                         Partial Paid
@@ -250,18 +251,15 @@ export default function InvoicesIndexRoute() {
                     </li>
                     <li className="flex items-center">
                       <input
-                        id="Fully Paid"
+                        id="FullyPaid"
                         type="checkbox"
-                        value="Fully Paid"
+                        value="FullyPaid"
                         name="status"
-                        defaultChecked={status.includes("Fully Paid")}
+                        defaultChecked={status.includes("FullyPaid")}
                         onChange={() => submit(formRef.current)}
                         className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
-                      <label
-                        htmlFor="Fully Paid"
-                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
-                      >
+                      <label htmlFor="FullyPaid" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                         Fully Paid
                       </label>
                     </li>
@@ -275,10 +273,7 @@ export default function InvoicesIndexRoute() {
                         onChange={() => submit(formRef.current)}
                         className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
-                      <label
-                        htmlFor="Archived"
-                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
-                      >
+                      <label htmlFor="Archived" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                         Archived
                       </label>
                     </li>
@@ -295,9 +290,7 @@ export default function InvoicesIndexRoute() {
                   <svg
                     xmlns="http://www.w2.org/2000/svg"
                     aria-hidden="true"
-                    className={`w-5 h-4 mr-2 ${
-                      workStatus.length === 0 ? "text-gray-400" : "text-[#f3c41a]"
-                    }`}
+                    className={`w-5 h-4 mr-2 ${workStatus.length === 0 ? "text-gray-400" : "text-[#f3c41a]"}`}
                     viewBox="-1 0 20 20"
                     fill="currentColor"
                   >
@@ -326,62 +319,48 @@ export default function InvoicesIndexRoute() {
                   id="filterDropdownSecond"
                   className="z-10 hidden w-48 p-3 bg-white rounded-lg shadow dark:bg-gray-700"
                 >
-                  <h5 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">
-                    Status
-                  </h5>
-                  <ul
-                    className="space-y-3 text-sm"
-                    aria-labelledby="dropdownDefault"
-                  >
+                  <h5 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">Status</h5>
+                  <ul className="space-y-3 text-sm" aria-labelledby="dropdownDefault">
                     <li className="flex items-center">
                       <input
                         id="Pending"
                         type="checkbox"
                         value="Pending"
                         name="workStatus"
-                        defaultChecked={status.includes("Pending")}
+                        defaultChecked={workStatus.includes("Pending")}
                         onChange={() => submit(formRef.current)}
                         className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
-                      <label
-                        htmlFor="Pending"
-                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
-                      >
+                      <label htmlFor="Pending" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                         Pending
                       </label>
                     </li>
                     <li className="flex items-center">
                       <input
-                        id="In Progress"
+                        id="InProgress"
                         type="checkbox"
-                        value="In Progress"
+                        value="InProgress"
                         name="workStatus"
-                        defaultChecked={status.includes("In Progress")}
+                        defaultChecked={workStatus.includes("InProgress")}
                         onChange={() => submit(formRef.current)}
                         className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
-                      <label
-                        htmlFor="In Progress"
-                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
-                      >
+                      <label htmlFor="InProgress" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
                         In Progress
                       </label>
                     </li>
                     <li className="flex items-center">
                       <input
-                        id="Complete"
+                        id="Completed"
                         type="checkbox"
-                        value="Complete"
+                        value="Completed"
                         name="workStatus"
-                        defaultChecked={status.includes("Complete")}
+                        defaultChecked={workStatus.includes("Completed")}
                         onChange={() => submit(formRef.current)}
                         className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
                       />
-                      <label
-                        htmlFor="Complete"
-                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
-                      >
-                        Complete
+                      <label htmlFor="Completed" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
+                        Completed
                       </label>
                     </li>
                   </ul>
@@ -391,7 +370,7 @@ export default function InvoicesIndexRoute() {
             <div className="flex items-center ml-auto space-x-2 sm:space-x-3">
               <Link
                 to="new"
-                className="inline-flex items-center justify-center w-full  px-3 py-2.5 text-sm font-medium text-center text-center text-slate-900 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] hover:bg-[#f3c41a] sm:w-auto"
+                className="inline-flex items-center justify-center w-full  px-3 py-2.5 text-sm font-medium text-center text-slate-900 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] hover:bg-[#f3c41a] sm:w-auto"
               >
                 <svg
                   className="w-5 h-5 mr-2 -ml-1"
@@ -477,35 +456,27 @@ export default function InvoicesIndexRoute() {
                 <tbody className="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
                   {invoices.length === 0 && (
                     <tr>
-                      <td
-                        colSpan={100}
-                        className="w-full text-gray-500 text-sm p-4 sm:p-6 text-center"
-                      >
-                        There are no invoices to show. Please add a new invoice
-                        or change your search/filter criteria
+                      <td colSpan={100} className="w-full text-gray-500 text-sm p-4 sm:p-6 text-center">
+                        There are no invoices to show. Please add a new invoice or change your search/filter criteria
                       </td>
                     </tr>
                   )}
                   {invoices.map((invoice) => (
                     <tr
                       className={`hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                        transition.state === "idle"
-                          ? "text-gray-900"
-                          : "text-gray-500"
+                        transition.state === "idle" ? "text-gray-900" : "text-gray-500"
                       }`}
                       key={invoice.id}
                     >
-                      <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
-                        {invoice.invoiceNumber}
-                      </td>
+                      <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">#{invoice.id}</td>
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
                         {new Date(invoice.createdAt!).toDateString()}
                       </td>
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
-                        {invoice.customer.customerName}
+                        {invoice.customer.name}
                       </td>
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
-                        {invoice.customer.customerPhone}
+                        {invoice.customer.phone}
                       </td>
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
                         Rs. {invoice.totalAmount}
@@ -513,10 +484,16 @@ export default function InvoicesIndexRoute() {
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
                         Rs. {invoice.amountDue}
                       </td>
-                      <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
-                        {invoice.status}
-                      </td>
-                      <td className={`${invoice?.workStatus?.toLocaleLowerCase() === "complete" ? "text-green-500" : invoice?.workStatus?.toLocaleLowerCase() === "pending" ? "text-red-500" : "text-slate-500" } p-4 text-base font-medium whitespace-nowrap dark:text-white`}>
+                      <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">{invoice.status}</td>
+                      <td
+                        className={`${
+                          invoice?.workStatus?.toLocaleLowerCase() === "complete"
+                            ? "text-green-500"
+                            : invoice?.workStatus?.toLocaleLowerCase() === "pending"
+                            ? "text-red-500"
+                            : "text-slate-500"
+                        } p-4 text-base font-medium whitespace-nowrap dark:text-white`}
+                      >
                         {invoice.workStatus?.toLocaleUpperCase()}
                       </td>
                       <td className="p-4 space-x-2 whitespace-nowrap">
@@ -552,12 +529,7 @@ export default function InvoicesIndexRoute() {
             }}
             disabled={page === 1}
           >
-            <svg
-              className="w-7 h-7"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
               <path
                 fillRule="evenodd"
                 d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
@@ -573,12 +545,7 @@ export default function InvoicesIndexRoute() {
             }}
             disabled={page === Math.ceil(total / PAGE_SIZE)}
           >
-            <svg
-              className="w-7 h-7"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
               <path
                 fillRule="evenodd"
                 d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
@@ -589,15 +556,9 @@ export default function InvoicesIndexRoute() {
           <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
             Showing{" "}
             <span className="font-semibold text-gray-900 dark:text-white">
-              {`${Math.min((page - 1) * PAGE_SIZE + 1, total)}-${Math.min(
-                page * PAGE_SIZE,
-                total
-              )}`}
+              {`${Math.min((page - 1) * PAGE_SIZE + 1, total)}-${Math.min(page * PAGE_SIZE, total)}`}
             </span>{" "}
-            of{" "}
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {`${total}`}
-            </span>
+            of <span className="font-semibold text-gray-900 dark:text-white">{`${total}`}</span>
           </span>
         </div>
       </div>
