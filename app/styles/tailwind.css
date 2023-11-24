@@ -13,3 +13,10 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+@font-face {
+  font-family: "LEMON MILK";
+  src: url("/fonts/LEMONMILK-Regular.otf");
+  font-weight: normal;
+  font-display: swap;
+}
