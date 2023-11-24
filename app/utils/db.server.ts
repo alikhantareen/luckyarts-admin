@@ -13,8 +13,8 @@ async function seedUser() {
   const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(schema.users);
   if (count === 0) {
     console.log("Seeding a user into db...");
-    const email = "admin@luckyarts.pk";
-    const password = bcrypt.hashSync("admin123");
+    const email = "admin@luckyarts.co";
+    const password = bcrypt.hashSync("lucky_arts72");
     await db.insert(schema.users).values({ email, password });
   }
 }
