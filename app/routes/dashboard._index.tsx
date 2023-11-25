@@ -124,7 +124,7 @@ export default function Index() {
                   Unpaid: {invoicesCounter("unpaid", invoice)}
                 </h5>
                 <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  Unpaid Amount: {invoicesPaymentCalculator("unpaid", invoice)}
+                  Unpaid Amount: <b>{invoicesPaymentCalculator("unpaid", invoice)}</b>
                 </p>
                 <NavLink
                   to="invoices?status=Unpaid"
@@ -153,7 +153,7 @@ export default function Index() {
                   Partial Paid: {invoicesCounter("partialpaid", invoice)}
                 </h5>
                 <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  Partial Amount: {invoicesPaymentCalculator("partialpaid", invoice)}
+                  Partial Amount: <b>{invoicesPaymentCalculator("partialpaid", invoice)}</b>
                 </p>
                 <NavLink
                   to="invoices?status=PartialPaid"
@@ -181,7 +181,9 @@ export default function Index() {
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                   Full paid: {invoicesCounter("fullypaid", invoice)}
                 </h5>
-                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">Total Amount: {fullyPaidAmount}</p>
+                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
+                  Total Amount: <b>{fullyPaidAmount}</b>
+                </p>
                 <NavLink
                   to="invoices?status=FullyPaid"
                   className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-green-400 rounded-lg"
@@ -212,7 +214,7 @@ export default function Index() {
               <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Pending</h5>
                 <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  {ordersStatusCounter("pending", invoice)}
+                  <b>{ordersStatusCounter("pending", invoice)}</b>
                 </p>
                 <NavLink
                   to="invoices?workStatus=Pending"
@@ -239,7 +241,7 @@ export default function Index() {
               <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">In Progress</h5>
                 <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  {ordersStatusCounter("inprogress", invoice)}
+                  <b>{ordersStatusCounter("inprogress", invoice)}</b>
                 </p>
                 <NavLink
                   to="invoices?workStatus=InProgress"
@@ -266,7 +268,7 @@ export default function Index() {
               <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Complete</h5>
                 <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  {ordersStatusCounter("completed", invoice)}
+                  <b> {ordersStatusCounter("completed", invoice)}</b>
                 </p>
                 <NavLink
                   to="invoices?workStatus=Completed"

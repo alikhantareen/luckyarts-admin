@@ -27,6 +27,8 @@ export const action = async ({ request }: ActionArgs) => {
   const password = form.get("password") as string;
   const redirectTo = (form.get("redirectTo") as string) || "/";
 
+  console.log(email, password);
+
   const result = LoginFormSchema.safeParse({ email, password });
   if (!result.success) {
     return json({
@@ -51,6 +53,7 @@ export const action = async ({ request }: ActionArgs) => {
 export default function Login() {
   const actionData = useActionData<typeof action>();
   const [searchParams] = useSearchParams();
+  console.log(searchParams);
   return (
     <section className="bg-gray-50 dark:bg-gray-900">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">

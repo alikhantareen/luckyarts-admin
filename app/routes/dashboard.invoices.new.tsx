@@ -324,7 +324,6 @@ export default function NewInvoiceRoute() {
                   name="itemDiscount"
                   placeholder="Discount"
                   type="number"
-                  required
                   min={0}
                   max={item.itemPrice}
                   onChange={(e) =>

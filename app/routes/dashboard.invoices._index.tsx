@@ -419,7 +419,7 @@ export default function InvoicesIndexRoute() {
           <div className="inline-block min-w-full align-middle">
             <div className="overflow-hidden shadow">
               <table className="min-w-full divide-y divide-gray-200 table-fixed dark:divide-gray-600">
-                <thead className="bg-slate-900 dark:bg-gray-700">
+                <thead className="bg-stone-950 dark:bg-gray-700">
                   <tr>
                     <th
                       scope="col"
