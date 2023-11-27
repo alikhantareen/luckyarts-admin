@@ -119,7 +119,7 @@ export default function Index() {
           <div className="w-full">
             <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Invoices</h1>
             <div className="flex flex-col gap-5 md:flex-row mt-5 w-full">
-              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                   Unpaid: {invoicesCounter("unpaid", invoice)}
                 </h5>
@@ -148,7 +148,7 @@ export default function Index() {
                   </svg>
                 </NavLink>
               </div>
-              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                   Partial Paid: {invoicesCounter("partialpaid", invoice)}
                 </h5>
@@ -177,7 +177,7 @@ export default function Index() {
                   </svg>
                 </NavLink>
               </div>
-              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
                   Full paid: {invoicesCounter("fullypaid", invoice)}
                 </h5>
@@ -211,7 +211,7 @@ export default function Index() {
           <div>
             <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Orders</h1>
             <div className="flex flex-col gap-5 md:flex-row mt-5">
-              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Pending</h5>
                 <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
                   <b>{ordersStatusCounter("pending", invoice)}</b>
@@ -238,7 +238,7 @@ export default function Index() {
                   </svg>
                 </NavLink>
               </div>
-              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">In Progress</h5>
                 <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
                   <b>{ordersStatusCounter("inprogress", invoice)}</b>
@@ -265,7 +265,7 @@ export default function Index() {
                   </svg>
                 </NavLink>
               </div>
-              <div className="flex-grow max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
+              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
                 <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Complete</h5>
                 <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
                   <b> {ordersStatusCounter("completed", invoice)}</b>

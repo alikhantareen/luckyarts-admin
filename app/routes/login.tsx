@@ -55,13 +55,13 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   console.log(searchParams);
   return (
-    <section className="bg-gray-50 dark:bg-gray-900">
+    <section className="bg-gray-50 dark:bg-gray-900 -mt-8">
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
       <span
           className="flex gap-4 items-center mb-6 text-3xl font-semibold text-gray-900 dark:text-white"
         >
           <img
-            className="w-28 h-28 mr-2 rounded-lg"
+            className="w-36 h-36 rounded-lg"
             src={logo}
             alt="logo"
           />

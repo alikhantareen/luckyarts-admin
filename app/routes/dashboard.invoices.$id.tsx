@@ -1,7 +1,7 @@
 import { json, LoaderArgs, ActionArgs } from "@remix-run/node";
 import { Link, useLoaderData, Form, useNavigation, useActionData } from "@remix-run/react";
 import second_logo from "../assets/second_logo.png";
-import Invert_logo from "../assets/invertLogo.jpg"
+import bill_logo from "../assets/bill_logo.png";
 import ReactToPrint from "react-to-print";
 import React, { useEffect, useRef, useState } from "react";
 import { initModals, initDismisses } from "flowbite";
@@ -97,6 +97,30 @@ export default function InvoiceRoute() {
       }
     }
   }, [isDisabled]);
+
+  function formatDate(inputDate: any) {
+    const months: any = {
+      Jan: "01",
+      Feb: "02",
+      Mar: "03",
+      Apr: "04",
+      May: "05",
+      Jun: "06",
+      Jul: "07",
+      Aug: "08",
+      Sep: "09",
+      Oct: "10",
+      Nov: "11",
+      Dec: "12",
+    };
+
+    const parts = inputDate.split(" ");
+    const day = parts[2];
+    const month = months[parts[1]];
+    const year = parts[3];
+
+    return `${day}/${month}/${year}`;
+  }
 
   const { invoice, customer, items, transactions } = useLoaderData<typeof loader>();
   console.log({ invoice, customer, items, transactions });
@@ -276,10 +300,13 @@ export default function InvoiceRoute() {
             <div>
               {transactions.map((elem, key) => {
                 return (
-                  <div key={key} className="w-full flex justify-between">
-                    <p>{new Date(elem.createdAt).toDateString()}</p>
-                    <p>{elem.amount}</p>
-                  </div>
+                  <>
+                    <div key={key} className="w-full flex justify-between">
+                      <p>{formatDate(new Date(elem.createdAt).toDateString())}</p>
+                      <p>{elem.amount}</p>
+                    </div>
+                    <p className="text-sm border-b-2 border-slate-900 mb-2"><span className="font-semibold">Note: </span>{elem.note}</p>
+                  </>
                 );
               })}
             </div>
@@ -544,15 +571,20 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
     <div ref={ref} className="mt-4 print:mt-8">
       <div className="md:relative print:relative md:border-b-[16px] print:border-b-[16px] border-[#fdca01] print:border-stone-950 flex justify-between flex-col gap-2 md:gap-0 print:gap-0 md:flex-row print:flex-row p-2 md:p-0 print:p-0">
         <div className="flex items-end gap-2 print:items-end">
-          <img width={80} src={second_logo} alt="logo" className="ml-0 md:ml-4 print:ml-4 print:hidden p-2 bg-[#fdca01]" />
-          <img width={80} src={Invert_logo} alt="logo" className="ml-0 md:ml-4 print:ml-4 hidden print:block print:bg-stone-950" />
+          <img
+            width={80}
+            src={second_logo}
+            alt="logo"
+            className="ml-0 md:ml-4 print:ml-4 print:hidden p-2 bg-[#fdca01]"
+          />
+          <img width={80} src={bill_logo} alt="logo" className="ml-0 md:ml-4 print:ml-4 hidden print:block" />
           <div className="font-lemon flex flex-col items-center">
             <p className="text-2xl md:text-4xl print:text-4xl font-bold">LUCKY ARTS</p>
             <p className="text-xs font-semibold">SINCE 1985</p>
             <p className="text-xs font-semibold md:hidden print:hidden">THE NAME OF QUALITY</p>
           </div>
         </div>
-        <div className="flex flex-col justify-center md:justify-end print:justify-end md:items-end print:items-end items-start mr-4">
+        <div className="mb-2 flex flex-col justify-center md:justify-end print:justify-end md:items-end print:items-end items-start mr-4">
           <p className="text-xs font-semibold">Ashfaq Ahmad Khan Khakwani</p>
           <p className="text-xs font-semibold mb-1 flex items-center gap-1">
             <FaWhatsapp /> 0307-6667200
@@ -569,17 +601,17 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
             <FaLocationDot /> Chowk Fawara, Abdali Road, Near Ghanta Ghar, Multan
           </p>
         </div>
-        <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute top-[104px] left-[145px] print:left-[144px] print:text-white">
+        <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute top-[112px] left-[145px] print:left-[144px] print:text-white">
           THE NAME OF QUALITY
         </p>
       </div>
-      <div className="flex justify-between p-4 mt-2">
-        <div className="flex flex-col">
+      <div className="flex justify-between px-4 mt-2">
+        <div className="flex flex-col self-center">
           <p className="text-lg font-bold">Customer Details:</p>
           <p className="text-md italic">{customer.name}</p>
           <p className="text-md italic">{customer.phone}</p>
         </div>
-        <div>
+        <div className="">
           <p className="text-lg font-bold">
             Invoice#: <span className="font-normal">{invoice.id}</span>
           </p>
@@ -613,10 +645,18 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
                     {elem.quantity} x {elem.price}
                   </p> */}
                 </td>
-                <td className="col-span-1 font-bold text-center border-b-2 border-l-2 border-t-2 border-stone-950">{elem.description}</td>
-                <td className="hidden md:block print:block font-bold text-center border-b-2 border-l-2 border-t-2 border-stone-950">{elem.price}</td>
-                <td className="hidden md:block print:block font-bold text-center border-b-2 border-l-2 border-t-2 border-stone-950">{elem.quantity}</td>
-                <td className="border-stone-950 font-bold text-right px-2 border-b-2 border-l-2 border-t-2 border-r-2">{`${elem.quantity * elem.price}`}</td>
+                <td className="col-span-1 font-bold text-center border-b-2 border-l-2 border-t-2 border-stone-950">
+                  {elem.description}
+                </td>
+                <td className="hidden md:block print:block font-bold text-center border-b-2 border-l-2 border-t-2 border-stone-950">
+                  {elem.price}
+                </td>
+                <td className="hidden md:block print:block font-bold text-center border-b-2 border-l-2 border-t-2 border-stone-950">
+                  {elem.quantity}
+                </td>
+                <td className="border-stone-950 font-bold text-right px-2 border-b-2 border-l-2 border-t-2 border-r-2">{`${
+                  elem.quantity * elem.price
+                }`}</td>
               </tr>
             );
           })}
@@ -631,16 +671,18 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
                     <p className="">{invoice.totalAmount + totalDiscount}</p>
                   </div>
                 </span>
-                {
-                  totalDiscount > 0 ? <span className="flex justify-between font-bold mb-2">
-                  <div className="flex justify-end w-2/3">
-                    <p>Discount:</p>
-                  </div>
-                  <div className="flex justify-end w-1/3 px-2">
-                    <p className="">{totalDiscount}</p>
-                  </div>
-                </span> : ''
-                }
+                {totalDiscount > 0 ? (
+                  <span className="flex justify-between font-bold mb-2">
+                    <div className="flex justify-end w-2/3">
+                      <p>Discount:</p>
+                    </div>
+                    <div className="flex justify-end w-1/3 px-2">
+                      <p className="">{totalDiscount}</p>
+                    </div>
+                  </span>
+                ) : (
+                  ""
+                )}
                 <span className="flex p-2 justify-between font-bold mb-2 bg-[#fdca01] print:bg-stone-950 print:text-white">
                   <div className="flex justify-end w-2/3">
                     <p>Total Payment:</p>
@@ -664,13 +706,13 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
                 <span
                   className={`flex justify-between text-left font-semibold md:text-lg print:text-lg border-stone-950 text-stone-950`}
                 >
-                  <div className="flex justify-end w-2/3 text-base font-bold mb-2"><p>{invoice.amountDue! > 0 ? "Remaining Payment:" : "FULLY PAID ✅"}</p></div>
+                  <div className="flex justify-end w-2/3 text-base font-bold mb-2">
+                    <p>{invoice.amountDue! > 0 ? "Remaining Payment:" : "FULLY PAID ✅"}</p>
+                  </div>
                   <div className="flex justify-end w-1/3 px-2">
-                  <p
-                    className={`font-semibold text-base border-stone-950`}
-                  >
-                    {invoice.amountDue! > 0 ? invoice.amountDue! : ""}
-                  </p>
+                    <p className={`font-semibold text-base border-stone-950`}>
+                      {invoice.amountDue! > 0 ? invoice.amountDue! : ""}
+                    </p>
                   </div>
                 </span>
               </div>
@@ -678,10 +720,10 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           </div>
         </table>
       </div>
-      <div className="p-4">
+      <div className="px-4 mb-4">
         <p className="font-bold text-xl">Thank you for being our valuable customer 😊</p>
       </div>
-      <div className="flex flex-col gap-8 md:flex-row print:flex-row justify-between p-4">
+      <div className="flex flex-col gap-8 md:flex-row print:flex-row justify-between px-4 mb-4">
         <div>
           <p className="font-bold text-md">TERMS & CONDITIONS</p>
           <ol className="list-decimal list-inside text-sm">
@@ -690,13 +732,13 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           </ol>
         </div>
       </div>
-      <div className="p-4">
+      <div className="px-4 mb-4">
         <p className="font-bold text-lg flex flex-col">
           Follow us on Daraz for online shopping
           <span className="text-sm font-semibold">www.daraz.pk/shop/lucky-arts-1681900840</span>
         </p>
       </div>
-      <div className="flex flex-col md:flex-row print:flex-row justify-between items-center p-4">
+      <div className="flex flex-col md:flex-row print:flex-row justify-between items-center px-4 mb-4">
         <div className="flex gap-1 text-sm">
           <span className="flex items-center gap-1">
             <FaGlobe /> www.luckyarts.co

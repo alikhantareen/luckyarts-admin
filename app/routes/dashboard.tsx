@@ -4,7 +4,7 @@ import { initDrawers, initDropdowns } from "flowbite";
 import { useEffect } from "react";
 import { getUser } from "~/utils/session.server";
 import logo from "../assets/luckyartsLogo.png";
-import user_logo from "../assets/user_avatar.png";
+import user_logo from "../assets/user.png";
 
 export async function loader({ request }: LoaderArgs) {
   const user = await getUser(request);
