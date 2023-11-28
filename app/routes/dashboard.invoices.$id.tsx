@@ -1,7 +1,7 @@
 import { json, LoaderArgs, ActionArgs } from "@remix-run/node";
 import { Link, useLoaderData, Form, useNavigation, useActionData } from "@remix-run/react";
 import second_logo from "../assets/second_logo.png";
-import bill_logo from "../assets/bill_logo.png";
+import bill_logo from "../assets/final_logo.png";
 import ReactToPrint from "react-to-print";
 import React, { useEffect, useRef, useState } from "react";
 import { initModals, initDismisses } from "flowbite";
@@ -577,7 +577,7 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
             alt="logo"
             className="ml-0 md:ml-4 print:ml-4 print:hidden p-2 bg-[#fdca01]"
           />
-          <img width={80} src={bill_logo} alt="logo" className="ml-0 md:ml-4 print:ml-4 hidden print:block" />
+          <img width={70} src={bill_logo} alt="logo" className="ml-0 md:ml-4 print:ml-4 hidden print:block" />
           <div className="font-lemon flex flex-col items-center">
             <p className="text-2xl md:text-4xl print:text-4xl font-bold">LUCKY ARTS</p>
             <p className="text-xs font-semibold">SINCE 1985</p>
