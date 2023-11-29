@@ -598,7 +598,7 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
             lucky_arts72@gmail.com
           </p>
           <p className="text-xs font-semibold flex items-center gap-1">
-            <FaLocationDot /> ABDALI ROAD NEAR CHOWK FAWARA, MULTAN
+            <FaLocationDot /> Abdali road near chowk fawara, Multan
           </p>
         </div>
         <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute top-[112px] left-[145px] print:left-[144px] print:text-white">
