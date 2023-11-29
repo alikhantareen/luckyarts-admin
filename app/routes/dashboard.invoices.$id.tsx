@@ -541,7 +541,7 @@ type InvoiceComponentProps = {
 };
 const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponentProps>((props, ref) => {
   const { invoice, customer, items, transactions } = props;
-  const totalDiscount = items.map((i) => (i.discount ?? 0) * i.quantity).reduce((p, n) => p + n, 0);
+  const totalDiscount = items.map((i) => (i.discount ?? 0)).reduce((p, n) => p + n, 0);
 
   function formatDate(inputDate: any) {
     const months: any = {

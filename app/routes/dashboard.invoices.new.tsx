@@ -60,7 +60,7 @@ export const action = async ({ request }: ActionArgs) => {
   }
 
   const totalAmount = items
-    .map((i) => i.price * i.quantity - i.discount * i.quantity)
+    .map((i) => i.price * i.quantity - i.discount)
     .reduce((prev, curr) => prev + curr, 0);
   if (amountPaid > totalAmount) {
     return json({
@@ -96,7 +96,7 @@ export default function NewInvoiceRoute() {
   const subtotals = useMemo(
     () =>
       items.map((i) => {
-        return i.itemPrice * i.itemQuantity - i.itemDiscount * i.itemQuantity;
+        return i.itemPrice * i.itemQuantity - i.itemDiscount;
       }),
     [items]
   );
@@ -289,7 +289,7 @@ export default function NewInvoiceRoute() {
                 />
                 <input
                   disabled
-                  value={subtotals[idx] + item.itemDiscount * item.itemQuantity}
+                  value={subtotals[idx] + item.itemDiscount}
                   type="number"
                   className="col-span-2 sm:col-span-5 text-right font-medium block py-2.5 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
                 />
@@ -369,7 +369,7 @@ export default function NewInvoiceRoute() {
             </span>
             <input
               disabled
-              value={total + items.map((i) => i.itemDiscount * i.itemQuantity).reduce((p, n) => p + n, 0)}
+              value={total + items.map((i) => i.itemDiscount).reduce((p, n) => p + n, 0)}
               type="number"
               className="sm:col-span-5 text-right font-bold block w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
             />
@@ -378,7 +378,7 @@ export default function NewInvoiceRoute() {
             </span>
             <input
               disabled
-              value={items.map((i) => i.itemDiscount * i.itemQuantity).reduce((p, n) => p + n, 0)}
+              value={items.map((i) => i.itemDiscount).reduce((p, n) => p + n, 0)}
               type="number"
               className="sm:col-span-5 text-right font-bold block w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
             />
