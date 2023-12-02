@@ -306,7 +306,7 @@ export default function Index() {
             </div>
           )}
           <div>
-            {transactions.slice(0, 11).map((elem, key) => {
+            {transactions.slice(0, 10).reverse().map((elem, key) => {
               return (
                 <div key={key} className="w-full flex justify-between border-b-2 border-slate-900 mb-2">
                   <p>{formatDate(new Date(elem.createdAt).toDateString())}</p>
