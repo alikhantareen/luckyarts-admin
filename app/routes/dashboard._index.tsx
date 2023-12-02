@@ -24,7 +24,7 @@ export async function loader({ request }: LoaderArgs) {
   } else {
     result = await db.select().from(invoices);
   }
-  const transactions = await db.select().from(transactionsSchema).limit(10).orderBy(desc(transactionsSchema.createdAt))
+  const transactions = await db.select().from(transactionsSchema).limit(10).orderBy(desc(transactionsSchema.id))
 
   return json({ invoice: result, transactions });
 }
