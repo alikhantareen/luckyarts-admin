@@ -1,7 +1,7 @@
-import { ActionArgs, LoaderArgs, json } from "@remix-run/node";
+import { LoaderArgs, json } from "@remix-run/node";
 import { Form, NavLink, useLoaderData } from "@remix-run/react";
 import { invoices, transactions as transactionsSchema } from "db/schema";
-import { between, gte, lte } from "drizzle-orm";
+import { between, gte, lte, desc } from "drizzle-orm";
 import { db } from "~/utils/db.server";
 
 export async function loader({ request }: LoaderArgs) {
@@ -24,7 +24,8 @@ export async function loader({ request }: LoaderArgs) {
   } else {
     result = await db.select().from(invoices);
   }
-  const transactions = await db.select().from(transactionsSchema);
+  const transactions = await db.select().from(transactionsSchema).limit(10).orderBy(desc(transactionsSchema.createdAt))
+
   return json({ invoice: result, transactions });
 }
 
@@ -306,7 +307,7 @@ export default function Index() {
             </div>
           )}
           <div>
-            {transactions.slice(0, 10).reverse().map((elem, key) => {
+            {transactions.map((elem, key) => {
               return (
                 <div key={key} className="w-full flex justify-between border-b-2 border-slate-900 mb-2">
                   <p>{formatDate(new Date(elem.createdAt).toDateString())}</p>

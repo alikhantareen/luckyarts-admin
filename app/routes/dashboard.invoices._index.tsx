@@ -1,6 +1,6 @@
 import type { ActionArgs, LoaderArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
-import { Form, Link, useFetcher, useLoaderData, useNavigation, useSearchParams, useSubmit } from "@remix-run/react";
+import { Form, Link, useLoaderData, useNavigation, useSearchParams, useSubmit } from "@remix-run/react";
 import { initDropdowns } from "flowbite";
 import { useEffect, useRef } from "react";
 import { db } from "~/utils/db.server";
@@ -66,7 +66,6 @@ export default function InvoicesIndexRoute() {
   const { invoices, total } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const submit = useSubmit();
-  const fetcher = useFetcher();
   const transition = useNavigation();
   const formRef = useRef<HTMLFormElement>(null);
 
