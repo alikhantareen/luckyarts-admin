@@ -1,14 +1,23 @@
-import type { LoaderArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
-import { Form, Link, useLoaderData, useNavigation, useSearchParams, useSubmit } from "@remix-run/react";
+import type { ActionArgs, LoaderArgs } from "@remix-run/node";
+import { json, redirect } from "@remix-run/node";
+import { Form, Link, useFetcher, useLoaderData, useNavigation, useSearchParams, useSubmit } from "@remix-run/react";
 import { initDropdowns } from "flowbite";
 import { useEffect, useRef } from "react";
 import { db } from "~/utils/db.server";
 import { eq, inArray, and, sql, desc, like, or } from "drizzle-orm";
-import { InvoiceStatus, InvoiceWorkStatus, customers, invoices } from "db/schema";
+import { InvoiceStatus, InvoiceWorkStatus, customers, invoices, items, transactions } from "db/schema";
 
 // Update relavant const on server: lib/invoice.server.ts
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
+
+export const action = async ({ request }: ActionArgs) => {
+  const formData = await request.formData();
+  const id = Number(formData.get("id"));
+  await db.delete(items).where(eq(items.invoiceId, id));
+  await db.delete(transactions).where(eq(transactions.invoiceId, id));
+  await db.delete(invoices).where(eq(invoices.id, id));
+  return redirect(`/dashboard/invoices`);
+};
 
 export async function loader({ request }: LoaderArgs) {
   const url = new URL(request.url);
@@ -57,6 +66,7 @@ export default function InvoicesIndexRoute() {
   const { invoices, total } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const submit = useSubmit();
+  const fetcher = useFetcher();
   const transition = useNavigation();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -534,6 +544,17 @@ export default function InvoicesIndexRoute() {
                             See details
                           </button>
                         </Link>
+                        <button
+                          onClick={() => {
+                            let shouldDelete = confirm("Do you want to delete the invoice?");
+                            if (shouldDelete) {
+                              submit({ id: invoice.id }, { method: "DELETE" });
+                            }
+                          }}
+                          className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg border-stone-950 border hover:bg-red-400 focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   ))}
