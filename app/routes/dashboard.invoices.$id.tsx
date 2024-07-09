@@ -305,7 +305,10 @@ export default function InvoiceRoute() {
                       <p>{formatDate(new Date(elem.createdAt).toDateString())}</p>
                       <p>{elem.amount}</p>
                     </div>
-                    <p className="text-sm border-b-2 border-slate-900 mb-2"><span className="font-semibold">Note: </span>{elem.note}</p>
+                    <p className="text-sm border-b-2 border-slate-900 mb-2">
+                      <span className="font-semibold">Note: </span>
+                      {elem.note}
+                    </p>
                   </>
                 );
               })}
@@ -541,7 +544,7 @@ type InvoiceComponentProps = {
 };
 const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponentProps>((props, ref) => {
   const { invoice, customer, items, transactions } = props;
-  const totalDiscount = items.map((i) => (i.discount ?? 0)).reduce((p, n) => p + n, 0);
+  const totalDiscount = items.map((i) => i.discount ?? 0).reduce((p, n) => p + n, 0);
 
   function formatDate(inputDate: any) {
     const months: any = {
@@ -729,19 +732,21 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           <ol className="list-decimal list-inside text-sm">
             <li>Any technical glitches may delay the work</li>
             <li>Advance will not be refunded in case of order cancellation</li>
+            <li>Please pick your order within 15-Days of order placement</li>
+            <li>We won't be responsible for any loss after 15 days</li>
           </ol>
         </div>
       </div>
       <div className="px-4 mb-4">
         <p className="font-bold text-lg flex flex-col">
-          Follow us on Daraz for online shopping
-          <span className="text-sm font-semibold">www.daraz.pk/shop/lucky-arts-1681900840</span>
+          For online shopping, please visit our store at
+          <span className="text-md font-normal">www.luckyarts.org</span>
         </p>
       </div>
       <div className="flex flex-col md:flex-row print:flex-row justify-between items-center px-4 mb-4">
         <div className="flex gap-1 text-sm">
           <span className="flex items-center gap-1">
-            <FaGlobe /> www.luckyarts.co
+            <FaGlobe /> www.luckyarts.org
           </span>
           <span className="flex items-center gap-1">
             <FaFacebook /> @luckyarts.pk
