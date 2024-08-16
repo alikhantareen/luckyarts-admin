@@ -23,10 +23,8 @@ import { FaFacebook, FaGlobe, FaInstagram, FaYoutube, FaWhatsapp, FaLocationDot 
 import { SiGmail } from "react-icons/si";
 
 export const action = async ({ request, params }: ActionArgs) => {
-  console.log("ACTION INVOICE DETAILS");
   const formData = await request.formData();
   const workStatus = formData.get("workStatus") as InvoiceWorkStatus;
-  const statusId = formData.get("statusID") as string;
   const userId = await requireUserId(request);
   const transactionamount = Number(formData.get("transactionAmount"))!;
   const transactiondate = formData.get("transactionDate") as string;
@@ -36,7 +34,7 @@ export const action = async ({ request, params }: ActionArgs) => {
   const invoiceId = Number(id);
 
   if (_action === "update") {
-    const x = await db.update(invoices).set({ workStatus }).where(eq(invoices.id, invoiceId));
+    await db.update(invoices).set({ workStatus }).where(eq(invoices.id, invoiceId));
     return json({ success: "workstatusupdate" });
   }
 
@@ -123,7 +121,6 @@ export default function InvoiceRoute() {
   }
 
   const { invoice, customer, items, transactions } = useLoaderData<typeof loader>();
-  console.log({ invoice, customer, items, transactions });
   const componentRef = useRef<HTMLDivElement | null>(null);
   const modalHideBtnRef = useRef<HTMLButtonElement | null>(null);
 
@@ -570,6 +567,19 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
     return `${day}/${month}/${year}`;
   }
 
+  function extractTime(dateTimeString: string) {
+    const dateObject = new Date(dateTimeString);
+    let hours = dateObject.getHours();
+    const minutes = dateObject.getMinutes().toString().padStart(2, '0');
+    const  
+   period = hours >= 12 ? 'PM' : 'AM';
+  
+    // Convert to 12-hour format
+    hours = hours % 12 || 12;
+  
+    return `${hours}:${minutes} ${period}`;
+  }
+
   return (
     <div ref={ref} className="mt-4 print:mt-8">
       <div className="md:relative print:relative md:border-b-[16px] print:border-b-[16px] border-[#fdca01] print:border-stone-950 flex justify-between flex-col gap-2 md:gap-0 print:gap-0 md:flex-row print:flex-row p-2 md:p-0 print:p-0">
@@ -620,6 +630,9 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           </p>
           <p className="text-lg font-bold">
             Date: <span className="font-normal">{formatDate(new Date(invoice.createdAt!).toDateString())}</span>
+          </p>
+          <p className="text-lg font-bold">
+            Time: <span className="font-normal">{extractTime(invoice.createdAt!)}</span>
           </p>
           <p className="text-lg font-bold">
             NTN#: <span className="font-normal">0103866-4</span>
