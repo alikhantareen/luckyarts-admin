@@ -543,6 +543,14 @@ export default function InvoicesIndexRoute() {
                             See details
                           </button>
                         </Link>
+                        <Link to={`/dashboard/invoices/edit/${invoice.id}`}>
+                          <button
+                            type="button"
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-slate-900 border border-slate-900 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
+                          >
+                            Edit
+                          </button>
+                        </Link>
                         <button
                           onClick={() => {
                             let shouldDelete = confirm("Do you want to delete the invoice?");
