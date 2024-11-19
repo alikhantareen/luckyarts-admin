@@ -29,9 +29,54 @@ export const action = async ({ request, params }: ActionArgs) => {
   const transactionamount = Number(formData.get("transactionAmount"))!;
   const transactiondate = formData.get("transactionDate") as string;
   const transactionnote = formData.get("transactionNote") as string;
+  const transactionId = formData.get("transactionId") as string;
   const { _action } = Object.fromEntries(formData);
   const { id } = params;
   const invoiceId = Number(id);
+
+  if (_action === "edit") {
+    await db.transaction(async (tx) => {
+      const [invoice] = await tx.select().from(invoices).where(eq(invoices.id, invoiceId));
+
+      // Fetch the existing transaction to compare amounts
+      const [existingTransaction] = await tx
+        .select()
+        .from(transactionsSchema)
+        .where(eq(transactionsSchema.id, Number(transactionId)));
+
+      // Calculate the difference in transaction amount
+      const amountDifference = transactionamount - existingTransaction.amount;
+
+      // Check if the new amount is valid
+      if (invoice.amountDue - amountDifference < 0) {
+        throw new Error("Transaction amount cannot exceed remaining amount due");
+      }
+
+      // Update the transaction
+      await tx
+        .update(transactionsSchema)
+        .set({
+          amount: transactionamount,
+          createdAt: new Date(transactiondate),
+          note: transactionnote,
+        })
+        .where(eq(transactionsSchema.id, Number(transactionId)));
+
+      // Update invoice amount due
+      const newAmountDue = invoice.amountDue - amountDifference;
+      const status = newAmountDue === 0 ? "FullyPaid" : "PartialPaid";
+
+      await tx
+        .update(invoices)
+        .set({
+          amountDue: newAmountDue,
+          status,
+        })
+        .where(eq(invoices.id, invoiceId));
+    });
+
+    return json({ success: true });
+  }
 
   if (_action === "update") {
     await db.update(invoices).set({ workStatus }).where(eq(invoices.id, invoiceId));
@@ -73,13 +118,39 @@ export async function loader({ params }: LoaderArgs) {
 }
 
 export default function InvoiceRoute() {
-  // TODO: typesafe actioData
   const actionData = useActionData();
   const transition = useNavigation();
   const [isDisabled, setDisable] = useState(false);
-  const disable = () => {
-    setDisable(!isDisabled);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+
+  const componentRef = useRef<HTMLDivElement | null>(null);
+  const modalHideBtnRef = useRef<HTMLButtonElement | null>(null);
+  const editModalHideBtnRef = useRef<HTMLButtonElement | null>(null);
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    // Directly set the transaction 
+    setEditingTransaction(transaction);
   };
+
+  const handleModalClose = () => {
+    // Clear the editing transaction state when modal is closed
+    setEditingTransaction(null);
+    
+    // Programmatically close the modal
+    editModalHideBtnRef.current?.click();
+  };
+
+  useEffect(() => {
+    if (actionData?.success) {
+      // Reset editing transaction state
+      setEditingTransaction(null);
+      
+      // Close both modals
+      modalHideBtnRef.current?.click();
+      editModalHideBtnRef.current?.click();
+    }
+  }, [actionData]);
+
   useEffect(() => {
     if (typeof window !== "undefined") {
       initModals();
@@ -121,14 +192,6 @@ export default function InvoiceRoute() {
   }
 
   const { invoice, customer, items, transactions } = useLoaderData<typeof loader>();
-  const componentRef = useRef<HTMLDivElement | null>(null);
-  const modalHideBtnRef = useRef<HTMLButtonElement | null>(null);
-
-  useEffect(() => {
-    if (modalHideBtnRef) {
-      modalHideBtnRef.current?.click();
-    }
-  }, [transactions]);
 
   return (
     <div className="w-full md:p-5 mt-16 md:mt-2 bg-[#f9fafb]">
@@ -292,15 +355,27 @@ export default function InvoiceRoute() {
               <div className="w-full flex justify-between">
                 <p className="font-bold">Date</p>
                 <p className="font-bold">Amount</p>
+                <p className="font-bold">Action</p>
               </div>
             )}
             <div>
               {transactions.map((elem, key) => {
                 return (
                   <>
-                    <div key={key} className="w-full flex justify-between">
+                    <div key={key} className="w-full flex justify-between items-center">
                       <p>{formatDate(new Date(elem.createdAt).toDateString())}</p>
                       <p>{elem.amount}</p>
+                      <button
+                        onClick={() => {
+                          setEditingTransaction(null);
+                          handleEditTransaction(elem as any);
+                        }}
+                        data-modal-target="editTransactionModal"
+                        data-modal-toggle="editTransactionModal"
+                        className="text-blue-500 hover:text-blue-700"
+                      >
+                        Edit
+                      </button>
                     </div>
                     <p className="text-sm border-b-2 border-slate-900 mb-2">
                       <span className="font-semibold">Note: </span>
@@ -360,7 +435,7 @@ export default function InvoiceRoute() {
                     <input
                       id="paid-checkbox"
                       type="checkbox"
-                      onClick={disable}
+                      onClick={() => setDisable(!isDisabled)}
                       name="paid-checkbox"
                       value=""
                       className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
@@ -431,6 +506,108 @@ export default function InvoiceRoute() {
                 <button hidden type="button" data-modal-hide="staticModal" ref={modalHideBtnRef}></button>
               </div>
             </Form>
+          </div>
+        </div>
+      </div>
+      {/* Edit Transaction Modal */}
+      <div
+        id="editTransactionModal"
+        data-modal-backdrop="editTransactionModal"
+        tabIndex={-1}
+        aria-hidden="true"
+        className="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] md:h-full bg-gray-900 bg-opacity-75"
+      >
+        <div className="relative w-full h-full max-w-2xl md:h-auto">
+          <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div className="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Transaction</h3>
+              <button
+                type="button"
+                className="text-gray-400 bg-transparent hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                data-modal-hide="editTransactionModal"
+                onClick={handleModalClose}
+                ref={editModalHideBtnRef}
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+            {editingTransaction && (
+              <Form method="post" action={`/dashboard/invoices/${invoice?.id}`}>
+                <div className="p-6 space-y-6">
+                  <div className="flex mb-4 flex-col">
+                    <input type="hidden" name="transactionId" value={editingTransaction.id} />
+                    <div className="mb-6">
+                      <label
+                        htmlFor="edit-amount-input"
+                        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                      >
+                        Amount
+                      </label>
+                      <input
+                        type="number"
+                        id="edit-amount-input"
+                        name="transactionAmount"
+                        key={editingTransaction.id}
+                        defaultValue={editingTransaction.amount}
+                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        required
+                        min={0}
+                        max={invoice?.amountDue! + editingTransaction.amount}
+                      />
+                    </div>
+                    <div className="mb-6">
+                      <label
+                        htmlFor="edit-date-input"
+                        className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                      >
+                        Date
+                      </label>
+                      <input
+                        type="date"
+                        id="edit-date-input"
+                        name="transactionDate"
+                        key={`date-${editingTransaction.id}`}
+                        defaultValue={new Date(editingTransaction.createdAt).toISOString().split("T")[0]}
+                        className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                        required
+                      />
+                    </div>
+
+                    <label
+                      htmlFor="edit-message"
+                      className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+                    >
+                      Note
+                    </label>
+                    <textarea
+                      id="edit-message"
+                      rows={4}
+                      name="transactionNote"
+                      key={`note-${editingTransaction.id}`}
+                      defaultValue={editingTransaction.note || ""}
+                      className="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+                      placeholder="Write your note here..."
+                    ></textarea>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600">
+                  <button
+                    name="_action"
+                    value="edit"
+                    type="submit"
+                    className="border-stone-950 bg-[#f3c41a] focus:ring-2 focus:outline-none focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-bg-[#f3c41a] dark:focus:ring-slate-900"
+                  >
+                    {transition.state === "submitting" ? "Updating..." : "Update"}
+                  </button>
+                </div>
+              </Form>
+            )}
           </div>
         </div>
       </div>
@@ -570,13 +747,12 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
   function extractTime(dateTimeString: string) {
     const dateObject = new Date(dateTimeString);
     let hours = dateObject.getHours();
-    const minutes = dateObject.getMinutes().toString().padStart(2, '0');
-    const  
-   period = hours >= 12 ? 'PM' : 'AM';
-  
+    const minutes = dateObject.getMinutes().toString().padStart(2, "0");
+    const period = hours >= 12 ? "PM" : "AM";
+
     // Convert to 12-hour format
     hours = hours % 12 || 12;
-  
+
     return `${hours}:${minutes} ${period}`;
   }
 

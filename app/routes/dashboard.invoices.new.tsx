@@ -55,7 +55,6 @@ export const action = async ({ request }: ActionArgs) => {
   }
   const parseResult = InvoiceFormSchema.safeParse({ customer, items, amountPaid });
   if (!parseResult.success) {
-    console.log({ parseError: parseResult.error });
     return json(parseResult.error);
   }
 
