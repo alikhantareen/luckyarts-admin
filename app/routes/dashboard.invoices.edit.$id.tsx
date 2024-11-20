@@ -32,15 +32,15 @@ export const action = async ({ request, params }: ActionArgs) => {
   const invoiceId = Number(id);
   const formData = await request.formData();
 
-  const itemNames = formData.getAll("itemName");
-  const itemPrices = formData.getAll("itemPrice");
-  const itemDiscounts = formData.getAll("itemDiscount");
-  const itemQuantities = formData.getAll("itemQuantity");
-  const itemDescriptions = formData.getAll("itemDescription");
-  const amountPaid = Number(formData.get("amountPaid"));
+  const itemNames = formData.getAll("itemNameEdit");
+  const itemPrices = formData.getAll("itemPriceEdit");
+  const itemDiscounts = formData.getAll("itemDiscountEdit");
+  const itemQuantities = formData.getAll("itemQuantityEdit");
+  const itemDescriptions = formData.getAll("itemDescriptionEdit");
+  const amountPaid = Number(formData.get("amountPaidEdit"));
   const customer = {
-    name: formData.get("customerName") as string,
-    phone: formData.get("customerPhone") as string,
+    name: formData.get("customerNameEdit") as string,
+    phone: formData.get("customerPhoneEdit") as string,
   };
 
   const items: { name: string; price: number; discount: number; quantity: number; description: string }[] = [];
@@ -237,11 +237,11 @@ export default function EditInvoiceRoute() {
             Customer Information
           </h3>
           <p className="w-full px-4 sm:pr-0">
-            <label htmlFor="customerName" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <label htmlFor="customerNameEdit" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Name
             </label>
             <input
-              name="customerName"
+              name="customerNameEdit"
               type="text"
               defaultValue={customer.name || ""}
               placeholder="Type customer name"
@@ -250,11 +250,11 @@ export default function EditInvoiceRoute() {
             />
           </p>
           <p className="w-full px-4 sm:pl-0">
-            <label htmlFor="customerPhone" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <label htmlFor="customerPhoneEdit" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
               Phone
             </label>
             <input
-              name="customerPhone"
+              name="customerPhoneEdit"
               type="text"
               defaultValue={customer.phone || ''}
               maxLength={11}
@@ -289,7 +289,7 @@ export default function EditInvoiceRoute() {
                   {idx + 1}
                 </p>
                 <input
-                  name="itemName"
+                  name="itemNameEdit"
                   placeholder="Item detail"
                   value={item.itemName}
                   required
@@ -307,7 +307,7 @@ export default function EditInvoiceRoute() {
                   className="col-span-6 sm:col-span-12 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
                 />
                 <input
-                  name="itemQuantity"
+                  name="itemQuantityEdit"
                   placeholder="Item quantity"
                   type="number"
                   value={item.itemQuantity}
@@ -330,7 +330,7 @@ export default function EditInvoiceRoute() {
                   required
                 />
                 <input
-                  name="itemPrice"
+                  name="itemPriceEdit"
                   placeholder="Item price"
                   type="number"
                   required
@@ -378,17 +378,18 @@ export default function EditInvoiceRoute() {
                 </button>
                 <textarea
                   rows={1}
-                  name="itemDescription"
+                  name="itemDescriptionEdit"
                   placeholder="Item size"
                   required
                   defaultValue={item.itemDescription || ""}
                   className="col-span-8 sm:col-[2/17] bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
                 ></textarea>
                 <input
-                  name="itemDiscount"
+                  name="itemDiscountEdit"
                   placeholder="Discount"
                   type="number"
                   min={0}
+                  defaultValue={item.itemDiscount || 0}
                   onChange={(e) =>
                     setItems(
                       items.map((item, index) => {
@@ -458,7 +459,7 @@ export default function EditInvoiceRoute() {
               Advance Payment (Rs.)
             </span>
             <input
-              name="amountPaid"
+              name="amountPaidEdit"
               placeholder="Paid"
               type="number"
               min="0"

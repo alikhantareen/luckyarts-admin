@@ -253,7 +253,7 @@ export default function NewQuotationRoute() {
               <div key={idx} className="grid grid-cols-13 sm:grid-cols-26 gap-x-2 gap-y-1 min-w-[475px] mt-3 pb-1">
                 <p className="font-medium block py-2.5 px-1 w-full text-sm text-gray-900">{idx + 1}</p>
                 <input
-                  name="itemName"
+                  name="itemNameQuotation"
                   placeholder="Item detail"
                   value={item.itemName}
                   required
@@ -261,7 +261,7 @@ export default function NewQuotationRoute() {
                   className="col-span-6 sm:col-span-12 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
                 />
                 <input
-                  name="itemQuantity"
+                  name="itemQuantityQuotation"
                   type="number"
                   value={item.itemQuantity}
                   onChange={(e) => updateItem(idx, { itemQuantity: Number(e.target.value) })}
@@ -270,7 +270,7 @@ export default function NewQuotationRoute() {
                   required
                 />
                 <input
-                  name="itemPrice"
+                  name="itemPriceQuotation"
                   type="number"
                   value={item.itemPrice}
                   onChange={(e) => updateItem(idx, { itemPrice: Number(e.target.value) })}
@@ -282,7 +282,7 @@ export default function NewQuotationRoute() {
                   disabled
                   value={subtotals[idx] + item.itemDiscount}
                   type="number"
-                  className="col-span-2 sm:col-span-5 text-right font-medium block py-2.5 w-full text-sm text-gray-900 bg-transparent"
+                  className="sm:col-span-5 text-right font-bold block w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
                 />
                 <button
                   type="button"
@@ -306,15 +306,15 @@ export default function NewQuotationRoute() {
                   <span className="sr-only">Remove item</span>
                 </button>
                 <textarea
+                  name="itemDescriptionQuotation"
                   rows={1}
-                  name="itemDescription"
                   placeholder="Item description"
                   value={item.itemDescription}
                   onChange={(e) => updateItem(idx, { itemDescription: e.target.value })}
                   className="col-span-8 sm:col-[2/17] bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
                 />
                 <input
-                  name="itemDiscount"
+                  name="itemDiscountQuotation"
                   placeholder="Discount"
                   type="number"
                   min={0}
