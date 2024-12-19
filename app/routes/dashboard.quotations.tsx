@@ -424,7 +424,7 @@ type QuotationPrintComponentProps = {
 
 const QuotationPrintComponent = React.forwardRef<HTMLDivElement | null, QuotationPrintComponentProps>((props, ref) => {
   const { quotationData } = props;
-  const totalDiscount = quotationData.items.map((i) => i.discount ?? 0).reduce((p, n) => p + n, 0);
+  // const totalDiscount = quotationData.items.map((i) => i.discount ?? 0).reduce((p, n) => p + n, 0);
   const currentDate = new Date();
   function formatDate(inputDate: Date) {
     return inputDate.toLocaleDateString("en-GB"); // DD/MM/YYYY format
@@ -492,7 +492,7 @@ const QuotationPrintComponent = React.forwardRef<HTMLDivElement | null, Quotatio
         </div>
       </div>
       <div className="p-4">
-        <table className="w-full mt-3 md:mt-2 border-collapse">
+        <table className="w-full mt-3 md:mt-2 border-collapse mb-16">
           <thead>
             <tr className="grid grid-cols-5 md:grid-cols-9 print:grid-cols-9 text-right p-2 bg-stone-950 text-white">
               <th className="col-span-1 text-center text-sm">Sr.No#</th>
@@ -527,7 +527,7 @@ const QuotationPrintComponent = React.forwardRef<HTMLDivElement | null, Quotatio
               </tr>
             ))}
           </tbody>
-          <div className="w-full flex justify-end">
+          {/* <div className="w-full flex justify-end">
             <div className="border-b-2 border-l-2 border-r-2 border-stone-950 w-[18rem] flex flex-col">
               <div className="mt-2 mb-2">
                 <span className="flex justify-between font-bold mb-2 text-stone-950 ">
@@ -560,7 +560,7 @@ const QuotationPrintComponent = React.forwardRef<HTMLDivElement | null, Quotatio
                 </span>
               </div>
             </div>
-          </div>
+          </div> */}
         </table>
       </div>
       <div className="px-4 mb-4">
@@ -598,7 +598,7 @@ const QuotationPrintComponent = React.forwardRef<HTMLDivElement | null, Quotatio
             @luckyarts.pk
           </span>
         </div>
-        <div className="flex flex-col gap-1 items-center">
+        <div className="flex flex-col gap-1 items-center mt-8">
           <span className="font-bold">_________________________________</span>
           <span>Authorized Signature</span>
         </div>
