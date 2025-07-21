@@ -34,6 +34,7 @@ export async function loader({ request }: LoaderArgs) {
   const invoiceId = searchQuery.startsWith("#") && parseInt(searchQuery.slice(1));
 
   let where = and(
+    eq(invoices.type, "Invoice"),
     inArray(invoices.status, statusFilters),
     inArray(invoices.workStatus, workStatus),
     or(like(customers.name, `%${searchQuery}%`), like(customers.phone, `%${searchQuery}%`))

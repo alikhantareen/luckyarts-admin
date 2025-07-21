@@ -144,7 +144,7 @@ export default function QuotationsIndexRoute() {
                       to="/dashboard/quotations"
                       className="ml-1 text-gray-700 hover:text-primary-600 md:ml-2 dark:text-gray-300 dark:hover:text-white"
                     >
-                      Invoices
+                      Quotations
                     </Link>
                   </div>
                 </li>
@@ -214,192 +214,6 @@ export default function QuotationsIndexRoute() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-center w-full space-x-4 md:w-auto ">
-                <button
-                  id="filterDropdownButton"
-                  data-dropdown-toggle="filterDropdown"
-                  className="flex items-center justify-center w-full px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg md:w-auto focus:outline-none hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
-                  type="button"
-                >
-                  <svg
-                    xmlns="http://www.w2.org/2000/svg"
-                    aria-hidden="true"
-                    className={`w-5 h-4 mr-2 ${status.length === 0 ? "text-gray-400" : "text-[#f3c41a]"}`}
-                    viewBox="-1 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M2 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Invoice Status
-                  <svg
-                    className="-mr-2 ml-1.5 w-5 h-5"
-                    fill="currentColor"
-                    viewBox="-1 0 20 20"
-                    xmlns="http://www.w2.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path
-                      clipRule="evenodd"
-                      fillRule="evenodd"
-                      d="M4.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                    />
-                  </svg>
-                </button>
-                <div id="filterDropdown" className="z-10 hidden w-48 p-3 bg-white rounded-lg shadow dark:bg-gray-700">
-                  <h5 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">Status</h5>
-                  <ul className="space-y-3 text-sm" aria-labelledby="dropdownDefault">
-                    <li className="flex items-center">
-                      <input
-                        id="Unpaid"
-                        type="checkbox"
-                        value="Unpaid"
-                        name="status"
-                        defaultChecked={status.includes("Unpaid")}
-                        onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
-                      />
-                      <label htmlFor="Unpaid" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Unpaid
-                      </label>
-                    </li>
-                    <li className="flex items-center">
-                      <input
-                        id="PartialPaid"
-                        type="checkbox"
-                        value="PartialPaid"
-                        name="status"
-                        defaultChecked={status.includes("PartialPaid")}
-                        onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
-                      />
-                      <label
-                        htmlFor="PartialPaid"
-                        className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100"
-                      >
-                        Partial Paid
-                      </label>
-                    </li>
-                    <li className="flex items-center">
-                      <input
-                        id="FullyPaid"
-                        type="checkbox"
-                        value="FullyPaid"
-                        name="status"
-                        defaultChecked={status.includes("FullyPaid")}
-                        onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
-                      />
-                      <label htmlFor="FullyPaid" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Fully Paid
-                      </label>
-                    </li>
-                    <li className="flex items-center">
-                      <input
-                        id="Archived"
-                        type="checkbox"
-                        value="Archived"
-                        name="status"
-                        defaultChecked={status.includes("Archived")}
-                        onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
-                      />
-                      <label htmlFor="Archived" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Archived
-                      </label>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-              <div className="flex items-center w-full space-x-4 md:w-auto mt-5 md:ml-5 md:mt-0">
-                <button
-                  id="filterDropdownButtonSecond"
-                  data-dropdown-toggle="filterDropdownSecond"
-                  className="flex items-center justify-center w-full px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg md:w-auto focus:outline-none hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
-                  type="button"
-                >
-                  <svg
-                    xmlns="http://www.w2.org/2000/svg"
-                    aria-hidden="true"
-                    className={`w-5 h-4 mr-2 ${workStatus.length === 0 ? "text-gray-400" : "text-[#f3c41a]"}`}
-                    viewBox="-1 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M2 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Work Status
-                  <svg
-                    className="-mr-2 ml-1.5 w-5 h-5"
-                    fill="currentColor"
-                    viewBox="-1 0 20 20"
-                    xmlns="http://www.w2.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path
-                      clipRule="evenodd"
-                      fillRule="evenodd"
-                      d="M4.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                    />
-                  </svg>
-                </button>
-                <div
-                  id="filterDropdownSecond"
-                  className="z-10 hidden w-48 p-3 bg-white rounded-lg shadow dark:bg-gray-700"
-                >
-                  <h5 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">Status</h5>
-                  <ul className="space-y-3 text-sm" aria-labelledby="dropdownDefault">
-                    <li className="flex items-center">
-                      <input
-                        id="Pending"
-                        type="checkbox"
-                        value="Pending"
-                        name="workStatus"
-                        defaultChecked={workStatus.includes("Pending")}
-                        onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
-                      />
-                      <label htmlFor="Pending" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Pending
-                      </label>
-                    </li>
-                    <li className="flex items-center">
-                      <input
-                        id="InProgress"
-                        type="checkbox"
-                        value="InProgress"
-                        name="workStatus"
-                        defaultChecked={workStatus.includes("InProgress")}
-                        onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
-                      />
-                      <label htmlFor="InProgress" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        In Progress
-                      </label>
-                    </li>
-                    <li className="flex items-center">
-                      <input
-                        id="Completed"
-                        type="checkbox"
-                        value="Completed"
-                        name="workStatus"
-                        defaultChecked={workStatus.includes("Completed")}
-                        onChange={() => submit(formRef.current)}
-                        className="w-5 h-4 bg-gray-100 border-gray-300 rounded text-[#f3c41a] focus:ring-slate-900 dark:focus:ring-slate-900 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500"
-                      />
-                      <label htmlFor="Completed" className="ml-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                        Completed
-                      </label>
-                    </li>
-                  </ul>
-                </div>
-              </div>
             </Form>
             <div className="flex items-center ml-auto space-x-2 sm:space-x-3">
               <Link
@@ -435,7 +249,7 @@ export default function QuotationsIndexRoute() {
                       scope="col"
                       className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
-                      Invoice Number
+                      Quotation Number
                     </th>
                     <th
                       scope="col"
@@ -465,24 +279,6 @@ export default function QuotationsIndexRoute() {
                       scope="col"
                       className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
                     >
-                      Amount Due
-                    </th>
-                    <th
-                      scope="col"
-                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
-                    >
-                      Invoice
-                    </th>
-                    <th
-                      scope="col"
-                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
-                    >
-                      Work
-                    </th>
-                    <th
-                      scope="col"
-                      className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400"
-                    >
                       Actions
                     </th>
                   </tr>
@@ -491,7 +287,7 @@ export default function QuotationsIndexRoute() {
                   {invoices.length === 0 && (
                     <tr>
                       <td colSpan={100} className="w-full text-gray-500 text-sm p-4 sm:p-6 text-center">
-                        There are no invoices to show. Please add a new invoice or change your search/filter criteria
+                        There are no quotations to show. Please add a new quotation or change your search/filter criteria
                       </td>
                     </tr>
                   )}
@@ -514,21 +310,6 @@ export default function QuotationsIndexRoute() {
                       </td>
                       <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
                         Rs. {invoice.totalAmount}
-                      </td>
-                      <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
-                        Rs. {invoice.amountDue}
-                      </td>
-                      <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">{invoice.status}</td>
-                      <td
-                        className={`${
-                          invoice?.workStatus?.toLocaleLowerCase() === "complete"
-                            ? "text-green-500"
-                            : invoice?.workStatus?.toLocaleLowerCase() === "pending"
-                            ? "text-red-500"
-                            : "text-slate-500"
-                        } p-4 text-base font-medium whitespace-nowrap dark:text-white`}
-                      >
-                        {invoice.workStatus?.toLocaleUpperCase()}
                       </td>
                       <td className="p-4 space-x-2 whitespace-nowrap">
                         <Link to={`/dashboard/quotations/${invoice.id}`}>
@@ -554,7 +335,7 @@ export default function QuotationsIndexRoute() {
                         </Link>
                         <button
                           onClick={() => {
-                            let shouldDelete = confirm("Do you want to delete the invoice?");
+                            let shouldDelete = confirm("Do you want to delete the quotation?");
                             if (shouldDelete) {
                               submit({ id: invoice.id }, { method: "DELETE" });
                             }
