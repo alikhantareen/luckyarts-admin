@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { z } from "zod";
 import { db } from "~/utils/db.server";
 import { customers, invoices, items as itemsSchema, transactions } from "db/schema";
-import { requireUserId } from "~/utils/session.server";
+import { requireUserId, getUser } from "~/utils/session.server";
 
 export const InvoiceFormSchema = z.object({
   customer: z.object({
@@ -27,6 +27,8 @@ export const InvoiceFormSchema = z.object({
 
 export const action = async ({ request }: ActionArgs) => {
   const userId = await requireUserId(request);
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
   const formData = await request.formData();
   const itemNames = formData.getAll("itemName");
   const itemPrices = formData.getAll("itemPrice");
@@ -72,13 +74,13 @@ export const action = async ({ request }: ActionArgs) => {
     let res = await tx.insert(customers).values(customer);
     const customerId = Number(res.lastInsertRowid);
     const status = amountDue === 0 ? "FullyPaid" : amountDue < totalAmount ? "PartialPaid" : undefined;
-    res = await tx.insert(invoices).values({ userId, customerId, totalAmount, amountDue, status });
+    res = await tx.insert(invoices).values({ shopId: user.shopId!, userId, customerId, totalAmount, amountDue, status });
     const invoiceId = Number(res.lastInsertRowid);
     for (const item of items) {
-      await tx.insert(itemsSchema).values({ ...item, invoiceId });
+      await tx.insert(itemsSchema).values({ ...item, invoiceId, shopId: user.shopId! });
     }
     if (amountPaid > 0) {
-      await tx.insert(transactions).values({ userId, invoiceId, amount: amountPaid });
+      await tx.insert(transactions).values({ userId, invoiceId, shopId: user.shopId!, amount: amountPaid });
     }
     return invoiceId;
   });

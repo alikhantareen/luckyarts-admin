@@ -1,10 +1,13 @@
 import { LoaderArgs, json } from "@remix-run/node";
 import { Form, NavLink, useLoaderData } from "@remix-run/react";
 import { invoices, transactions as transactionsSchema } from "db/schema";
-import { between, gte, lte, desc } from "drizzle-orm";
+import { between, gte, lte, desc, eq, and } from "drizzle-orm";
 import { db } from "~/utils/db.server";
+import { getUser } from "~/utils/session.server";
 
 export async function loader({ request }: LoaderArgs) {
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
   const url = new URL(request.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
@@ -14,17 +17,34 @@ export async function loader({ request }: LoaderArgs) {
     const fromDate = new Date(from);
     const toDate = new Date(to);
     // const invoice = await findInvoicesWithDate(from!, to!);
-    result = await db.select().from(invoices).where(between(invoices.createdAt, fromDate, toDate));
+    result = await db
+      .select()
+      .from(invoices)
+      .where(and(eq(invoices.shopId, user.shopId!), between(invoices.createdAt, fromDate, toDate)));
   } else if (from) {
     const fromDate = new Date(from);
-    result = await db.select().from(invoices).where(gte(invoices.createdAt, fromDate));
+    result = await db
+      .select()
+      .from(invoices)
+      .where(and(eq(invoices.shopId, user.shopId!), gte(invoices.createdAt, fromDate)));
   } else if (to) {
     const toDate = new Date(to);
-    result = await db.select().from(invoices).where(lte(invoices.createdAt, toDate));
+    result = await db
+      .select()
+      .from(invoices)
+      .where(and(eq(invoices.shopId, user.shopId!), lte(invoices.createdAt, toDate)));
   } else {
-    result = await db.select().from(invoices);
+    result = await db
+      .select()
+      .from(invoices)
+      .where(eq(invoices.shopId, user.shopId!));
   }
-  const transactions = await db.select().from(transactionsSchema).limit(10).orderBy(desc(transactionsSchema.id))
+  const transactions = await db
+    .select()
+    .from(transactionsSchema)
+    .where(eq(transactionsSchema.shopId, user.shopId!))
+    .limit(10)
+    .orderBy(desc(transactionsSchema.id));
 
   return json({ invoice: result, transactions });
 }
