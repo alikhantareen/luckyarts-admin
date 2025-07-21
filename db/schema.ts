@@ -21,6 +21,7 @@ export const invoices = sqliteTable("invoices", {
   customerId: integer("customer_id")
     .references(() => customers.id)
     .notNull(),
+    type: text("type", { enum: ["Invoice", "Quotation"] }).notNull().default("Invoice"),
   status: text("status", { enum: ["Unpaid", "PartialPaid", "FullyPaid", "Archived"] })
     .notNull()
     .default("Unpaid"),
