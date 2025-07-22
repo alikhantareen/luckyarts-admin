@@ -174,6 +174,42 @@ export default function App() {
                 <span className="flex-1 ml-3 whitespace-nowrap">Quotations</span>
               </Link>
             </li>
+            {user.role === "SuperAdmin" && (
+              <>
+                <li>
+                  <Link
+                    to="/dashboard/users"
+                    className="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <svg
+                      className="w-6 h-6 text-[#f3c41a]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M10 3a3 3 0 100 6 3 3 0 000-6zM4 13a4 4 0 018 0v1H4v-1z" />
+                    </svg>
+                    <span className="flex-1 ml-3 whitespace-nowrap">Users</span>
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/dashboard/shops"
+                    className="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    <svg
+                      className="w-6 h-6 text-[#f3c41a]"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M4 3h12l1 5H3l1-5zm-1 7h14v7H3v-7z" />
+                    </svg>
+                    <span className="flex-1 ml-3 whitespace-nowrap">Shops</span>
+                  </Link>
+                </li>
+              </>
+            )}
           </ul>
         </div>
       </aside>

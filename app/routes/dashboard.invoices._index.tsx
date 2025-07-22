@@ -5,6 +5,7 @@ import { initDropdowns } from "flowbite";
 import { useEffect, useRef } from "react";
 import { db } from "~/utils/db.server";
 import { eq, inArray, and, sql, desc, like, or } from "drizzle-orm";
+import { getUser } from "~/utils/session.server";
 import { InvoiceStatus, InvoiceWorkStatus, customers, invoices, items, transactions } from "db/schema";
 
 // Update relavant const on server: lib/invoice.server.ts
@@ -13,13 +14,19 @@ const PAGE_SIZE = 10;
 export const action = async ({ request }: ActionArgs) => {
   const formData = await request.formData();
   const id = Number(formData.get("id"));
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
   await db.delete(items).where(eq(items.invoiceId, id));
   await db.delete(transactions).where(eq(transactions.invoiceId, id));
-  await db.delete(invoices).where(eq(invoices.id, id));
+  await db
+    .delete(invoices)
+    .where(and(eq(invoices.id, id), eq(invoices.shopId, user.shopId!)));
   return redirect(`/dashboard/invoices`);
 };
 
 export async function loader({ request }: LoaderArgs) {
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
   const url = new URL(request.url);
   let statusFilters = url.searchParams.getAll("status") as InvoiceStatus[];
   if (statusFilters.length === 0) {
@@ -34,6 +41,7 @@ export async function loader({ request }: LoaderArgs) {
   const invoiceId = searchQuery.startsWith("#") && parseInt(searchQuery.slice(1));
 
   let where = and(
+    eq(invoices.shopId, user.shopId!),
     eq(invoices.type, "Invoice"),
     inArray(invoices.status, statusFilters),
     inArray(invoices.workStatus, workStatus),
