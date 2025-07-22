@@ -282,7 +282,20 @@ export default function QuotationRoute() {
           content={() => componentRef.current}
         />
         <Form method="post">
-          <button name="_action" value="convert" className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-center border border-stone-950 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 hover:bg-[#f3c41a]">
+          <button 
+            type="button"
+            onClick={() => {
+              const shouldConvert = confirm("Are you sure you want to convert this quotation to an invoice? This action cannot be undone.");
+              if (shouldConvert) {
+                const form = document.createElement('form');
+                form.method = 'post';
+                form.innerHTML = '<input type="hidden" name="_action" value="convert">';
+                document.body.appendChild(form);
+                form.submit();
+              }
+            }}
+            className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-center border border-stone-950 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 hover:bg-[#f3c41a]"
+          >
             Convert to invoice
           </button>
         </Form>

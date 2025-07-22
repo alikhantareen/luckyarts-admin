@@ -16,7 +16,6 @@ export async function loader({ request }: LoaderArgs) {
   if (from && to) {
     const fromDate = new Date(from);
     const toDate = new Date(to);
-    // const invoice = await findInvoicesWithDate(from!, to!);
     result = await db
       .select()
       .from(invoices)
@@ -51,6 +50,7 @@ export async function loader({ request }: LoaderArgs) {
 
 export default function Index() {
   const { invoice, transactions } = useLoaderData<typeof loader>();
+  
   function invoicesCounter(condition: string, invoice: Array<any>): any {
     let accumulatedValue = invoice.reduce((accum, current) => {
       if (current.status?.toString().toLocaleLowerCase() === condition) {
@@ -60,6 +60,7 @@ export default function Index() {
     }, 0);
     return accumulatedValue;
   }
+  
   function invoicesPaymentCalculator(condition: string, invoice: Array<any>): any {
     const accumulator = invoice.reduce((accum, current) => {
       if (current.status?.toString().toLocaleLowerCase() === condition) {
@@ -69,12 +70,14 @@ export default function Index() {
     }, 0);
     return accumulator;
   }
+  
   const fullyPaidAmount = invoice.reduce((accum, current) => {
     if (current.status?.toString().toLocaleLowerCase() === "fullypaid") {
       accum = accum + Number(current.totalAmount);
     }
     return accum;
   }, 0);
+  
   function ordersStatusCounter(condition: string, invoice: Array<any>): any {
     const counter = invoice.reduce((accum, current) => {
       if (current.workStatus?.toString().toLocaleLowerCase() === condition) {
@@ -84,6 +87,7 @@ export default function Index() {
     }, 0);
     return counter;
   }
+  
   function formatDate(inputDate: any) {
     const months: any = {
       Jan: "01",
@@ -107,234 +111,304 @@ export default function Index() {
 
     return `${day}/${month}/${year}`;
   }
+
   return (
-    <div className="p-2 md:p-4 bg-[#f9fafb] h-screen w-full">
-      <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white font-lemon">Dashboard</h1>
-      <div className="flex flex-col gap-5 justify-center items-center md:flex-row md:flex-wrap">
-        <div className="bg-white rounded-lg border-2 border-slate-300 p-4 md:p-8 mt-5 flex flex-col gap-5 w-full flex-1">
-          <Form className="w-full" method="get">
-            <div className="w-full flex flex-col md:flex-row gap-5">
-              <div className="flex flex-grow items-center gap-3">
-                <p className="font-bold">From</p>
-                <input
-                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  type="date"
-                  name="from"
-                  id="from"
-                />
-              </div>
-              <div className="flex flex-grow items-center gap-8">
-                <p className="font-bold">To</p>
-                <input
-                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  type="date"
-                  name="to"
-                  id="to"
-                />
-              </div>
-              <button className="w-full md:w-fit text-slate-900 bg-[#f3c41a] focus:ring-2 focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-[#f3c41a] focus:outline-none dark:focus:ring-slate-900">
-                Search
-              </button>
+    <div className="min-h-screen p-6 bg-white dark:bg-gray-900">
+      {/* Header Section */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-lemon mb-2">
+          Welcome to Your Dashboard
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300 text-lg">
+          Monitor your business performance and track important metrics
+        </p>
+      </div>
+
+      {/* Date Filter Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 mb-8 border border-gray-200 dark:border-gray-700 shadow-lg">
+        <Form className="w-full" method="get">
+          <div className="w-full flex flex-col lg:flex-row gap-6">
+            <div className="flex flex-grow items-center gap-4">
+              <label className="font-semibold text-gray-700 dark:text-gray-300 min-w-[60px]">From</label>
+              <input
+                className="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-2xl focus:ring-2 focus:ring-[#f3c41a]/50 focus:border-[#f3c41a] block p-3.5 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                type="date"
+                name="from"
+                id="from"
+              />
             </div>
-          </Form>
-          <div className="w-full">
-            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Invoices</h1>
-            <div className="flex flex-col gap-5 md:flex-row mt-5 w-full">
-              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                  Unpaid: {invoicesCounter("unpaid", invoice)}
-                </h5>
-                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  Unpaid Amount: <b>{invoicesPaymentCalculator("unpaid", invoice)}</b>
-                </p>
-                <NavLink
-                  to="invoices?status=Unpaid"
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-red-500 rounded-lg"
-                >
-                  See more
-                  <svg
-                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 14 10"
-                  >
-                    <path
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M1 5h12m0 0L9 1m4 4L9 9"
-                    />
-                  </svg>
-                </NavLink>
+            <div className="flex flex-grow items-center gap-4">
+              <label className="font-semibold text-gray-700 dark:text-gray-300 min-w-[60px]">To</label>
+              <input
+                className="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-2xl focus:ring-2 focus:ring-[#f3c41a]/50 focus:border-[#f3c41a] block p-3.5 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                type="date"
+                name="to"
+                id="to"
+              />
+            </div>
+            <button className="lg:w-fit w-full bg-[#f3c41a] hover:bg-[#e6b800] text-gray-900 font-semibold rounded-2xl text-sm px-8 py-3.5 shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-[#f3c41a]/50">
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Search
+              </span>
+            </button>
+          </div>
+        </Form>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        {/* Main Content */}
+        <div className="xl:col-span-3 space-y-8">
+          {/* Invoices Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 rounded-2xl bg-[#f3c41a] text-gray-900 shadow-lg">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
               </div>
-              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                  Partial Paid: {invoicesCounter("partialpaid", invoice)}
-                </h5>
-                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  Partial Amount: <b>{invoicesPaymentCalculator("partialpaid", invoice)}</b>
-                </p>
-                <NavLink
-                  to="invoices?status=PartialPaid"
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-slate-900 bg-yellow-300 rounded-lg"
-                >
-                  See more
-                  <svg
-                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 14 10"
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Invoice Overview</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Unpaid Card */}
+              <div className="group relative overflow-hidden bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-100 dark:bg-red-900/20 rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 rounded-xl bg-red-500 text-white">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-red-600 dark:text-red-400">Unpaid</span>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    {invoicesCounter("unpaid", invoice)}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                    Amount: <span className="font-semibold text-red-600 dark:text-red-400">Rs. {invoicesPaymentCalculator("unpaid", invoice)}</span>
+                  </p>
+                  <NavLink
+                    to="invoices?status=Unpaid"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    <path
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M1 5h12m0 0L9 1m4 4L9 9"
-                    />
-                  </svg>
-                </NavLink>
+                    View Details
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </NavLink>
+                </div>
               </div>
-              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">
-                  Full paid: {invoicesCounter("fullypaid", invoice)}
-                </h5>
-                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  Total Amount: <b>{fullyPaidAmount}</b>
-                </p>
-                <NavLink
-                  to="invoices?status=FullyPaid"
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-green-400 rounded-lg"
-                >
-                  See more
-                  <svg
-                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 14 10"
+
+              {/* Partial Paid Card */}
+              <div className="group relative overflow-hidden bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#f3c41a]/20 rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 rounded-xl bg-[#f3c41a] text-gray-900">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-[#f3c41a]">Partial</span>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    {invoicesCounter("partialpaid", invoice)}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                    Amount: <span className="font-semibold text-[#f3c41a]">Rs. {invoicesPaymentCalculator("partialpaid", invoice)}</span>
+                  </p>
+                  <NavLink
+                    to="invoices?status=PartialPaid"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-[#f3c41a] hover:bg-[#e6b800] rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    <path
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M1 5h12m0 0L9 1m4 4L9 9"
-                    />
-                  </svg>
-                </NavLink>
+                    View Details
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </NavLink>
+                </div>
+              </div>
+
+              {/* Fully Paid Card */}
+              <div className="group relative overflow-hidden bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-100 dark:bg-green-900/20 rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 rounded-xl bg-green-500 text-white">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">Paid</span>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                    {invoicesCounter("fullypaid", invoice)}
+                  </h3>
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
+                    Amount: <span className="font-semibold text-green-600 dark:text-green-400">Rs. {fullyPaidAmount}</span>
+                  </p>
+                  <NavLink
+                    to="invoices?status=FullyPaid"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    View Details
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </NavLink>
+                </div>
               </div>
             </div>
           </div>
-          <div>
-            <h1 className="text-xl font-semibold text-gray-900 md:text-2xl dark:text-white">Orders</h1>
-            <div className="flex flex-col gap-5 md:flex-row mt-5">
-              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Pending</h5>
-                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  <b>{ordersStatusCounter("pending", invoice)}</b>
-                </p>
-                <NavLink
-                  to="invoices?workStatus=Pending"
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-red-500 rounded-lg"
-                >
-                  See more
-                  <svg
-                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 14 10"
-                  >
-                    <path
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M1 5h12m0 0L9 1m4 4L9 9"
-                    />
-                  </svg>
-                </NavLink>
+
+          {/* Orders Section */}
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-200 dark:border-gray-700 shadow-xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-3 rounded-2xl bg-[#f3c41a] text-gray-900 shadow-lg">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
               </div>
-              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">In Progress</h5>
-                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  <b>{ordersStatusCounter("inprogress", invoice)}</b>
-                </p>
-                <NavLink
-                  to="invoices?workStatus=InProgress"
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-slate-900 bg-yellow-300 rounded-lg"
-                >
-                  See more
-                  <svg
-                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 14 10"
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Order Status</h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Pending Orders */}
+              <div className="group relative overflow-hidden bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-100 dark:bg-red-900/20 rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 rounded-xl bg-red-500 text-white">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-red-600 dark:text-red-400">Pending</span>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                    {ordersStatusCounter("pending", invoice)}
+                  </h3>
+                  <NavLink
+                    to="invoices?workStatus=Pending"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    <path
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M1 5h12m0 0L9 1m4 4L9 9"
-                    />
-                  </svg>
-                </NavLink>
+                    View Orders
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </NavLink>
+                </div>
               </div>
-              <div className="flex-grow p-6 bg-white border border-gray-200 rounded-lg shadow dark:bg-gray-800 dark:border-gray-700">
-                <h5 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 dark:text-white">Complete</h5>
-                <p className="mb-3 font-normal text-gray-700 dark:text-gray-400">
-                  <b> {ordersStatusCounter("completed", invoice)}</b>
-                </p>
-                <NavLink
-                  to="invoices?workStatus=Completed"
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center text-white bg-green-400 rounded-lg"
-                >
-                  See more
-                  <svg
-                    className="rtl:rotate-180 w-3.5 h-3.5 ms-2"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 14 10"
+
+              {/* In Progress Orders */}
+              <div className="group relative overflow-hidden bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#f3c41a]/20 rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 rounded-xl bg-[#f3c41a] text-gray-900">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-[#f3c41a]">In Progress</span>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                    {ordersStatusCounter("inprogress", invoice)}
+                  </h3>
+                  <NavLink
+                    to="invoices?workStatus=InProgress"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-[#f3c41a] hover:bg-[#e6b800] rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
                   >
-                    <path
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M1 5h12m0 0L9 1m4 4L9 9"
-                    />
-                  </svg>
-                </NavLink>
+                    View Orders
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </NavLink>
+                </div>
+              </div>
+
+              {/* Completed Orders */}
+              <div className="group relative overflow-hidden bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-100 dark:bg-green-900/20 rounded-full -translate-y-16 translate-x-16"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-2 rounded-xl bg-green-500 text-white">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">Completed</span>
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                    {ordersStatusCounter("completed", invoice)}
+                  </h3>
+                  <NavLink
+                    to="invoices?workStatus=Completed"
+                    className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
+                  >
+                    View Orders
+                    <svg className="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </NavLink>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-lg border-2 border-slate-300 p-8 mt-5 flex flex-col gap-5 md:w-96 self-start w-full">
-          <p className="font-bold text-lg border-b-2 border-slate-900">Latest Transactions</p>
-          {transactions.length === 0 ? (
-            <p className="text-sm text-slate-500">No transaction has been made yet.</p>
-          ) : (
-            <div className="w-full flex justify-between">
-              <p className="font-bold">Date</p>
-              <p className="font-bold">Amount</p>
+
+        {/* Sidebar - Latest Transactions */}
+        <div className="xl:col-span-1">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 shadow-xl sticky top-24">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 rounded-xl bg-[#f3c41a] text-gray-900 shadow-lg">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Latest Transactions</h3>
             </div>
-          )}
-          <div>
-            {transactions.map((elem, key) => {
-              return (
-                <div key={key} className="w-full flex justify-between border-b-2 border-slate-900 mb-2">
-                  <p>{formatDate(new Date(elem.createdAt).toDateString())}</p>
-                  <p>Rs. {elem.amount}</p>
+            
+            {transactions.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
-              );
-            })}
+                <p className="text-gray-500 dark:text-gray-400 text-sm">No transactions yet</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {transactions.map((elem, key) => (
+                  <div key={key} className="group p-4 rounded-2xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200 hover:shadow-md">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#f3c41a] flex items-center justify-center text-gray-900 text-sm font-semibold shadow-lg">
+                          {formatDate(new Date(elem.createdAt).toDateString()).split('/')[0]}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {formatDate(new Date(elem.createdAt).toDateString())}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Transaction</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-green-600 dark:text-green-400">
+                          Rs. {elem.amount}
+                        </p>
+                        <div className="w-2 h-2 rounded-full bg-green-500 mt-1"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
