@@ -3,9 +3,9 @@ import { Form, Link, useLoaderData, useNavigation } from "@remix-run/react";
 import { useState, useMemo } from "react";
 import { z } from "zod";
 import { db } from "~/utils/db.server";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { customers, invoices, items as itemsSchema, transactions as transactionsSchema } from "db/schema";
-import { requireUserId } from "~/utils/session.server";
+import { requireUserId, getUser } from "~/utils/session.server";
 
 export const InvoiceEditFormSchema = z.object({
   customer: z.object({
@@ -28,6 +28,8 @@ export const InvoiceEditFormSchema = z.object({
 
 export const action = async ({ request, params }: ActionArgs) => {
   const userId = await requireUserId(request);
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
   const { id } = params;
   const invoiceId = Number(id);
   const formData = await request.formData();
@@ -76,10 +78,11 @@ export const action = async ({ request, params }: ActionArgs) => {
 
   await db.transaction(async (tx) => {
     // Update customer
+    const [invoiceForCustomer] = await tx.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
     await tx
       .update(customers)
       .set({ name: customer.name, phone: customer.phone })
-      .where(eq(customers.id, (await tx.select().from(invoices).where(eq(invoices.id, invoiceId)))[0].customerId));
+      .where(and(eq(customers.id, invoiceForCustomer.customerId), eq(customers.shopId, user.shopId!)));
 
     // Update invoice
     const status = amountDue === 0 ? "FullyPaid" : amountDue < totalAmount ? "PartialPaid" : undefined;
@@ -90,29 +93,30 @@ export const action = async ({ request, params }: ActionArgs) => {
         amountDue,
         status,
       })
-      .where(eq(invoices.id, invoiceId));
+      .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
 
     // Delete existing items and add new items
-    await tx.delete(itemsSchema).where(eq(itemsSchema.invoiceId, invoiceId));
+    await tx.delete(itemsSchema).where(and(eq(itemsSchema.invoiceId, invoiceId), eq(itemsSchema.shopId, user.shopId!)));
     for (const item of items) {
-      await tx.insert(itemsSchema).values({ ...item, invoiceId });
+      await tx.insert(itemsSchema).values({ ...item, invoiceId, shopId: user.shopId! });
     }
 
     // Update transactions
     const existingTransactions = await tx
       .select()
       .from(transactionsSchema)
-      .where(eq(transactionsSchema.invoiceId, invoiceId));
+      .where(and(eq(transactionsSchema.invoiceId, invoiceId), eq(transactionsSchema.shopId, user.shopId!)));
     const totalExistingPayments = existingTransactions.reduce((sum, t) => sum + t.amount, 0);
 
     if (amountPaid !== totalExistingPayments) {
       // If the paid amount is different, delete existing transactions and add a new one
-      await tx.delete(transactionsSchema).where(eq(transactionsSchema.invoiceId, invoiceId));
+      await tx.delete(transactionsSchema).where(and(eq(transactionsSchema.invoiceId, invoiceId), eq(transactionsSchema.shopId, user.shopId!)));
 
       if (amountPaid > 0) {
         await tx.insert(transactionsSchema).values({
           userId,
           invoiceId,
+          shopId: user.shopId!,
           amount: amountPaid,
           createdAt: new Date(),
         });
@@ -123,14 +127,19 @@ export const action = async ({ request, params }: ActionArgs) => {
   return redirect(`/dashboard/quotations/${invoiceId}`);
 };
 
-export async function loader({ params }: LoaderArgs) {
+export async function loader({ request, params }: LoaderArgs) {
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
   const { id } = params;
   const invoiceId = Number(id);
 
-  const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId));
-  const [customer] = await db.select().from(customers).where(eq(customers.id, invoice.customerId));
-  const items = await db.select().from(itemsSchema).where(eq(itemsSchema.invoiceId, invoiceId));
-  const transactions = await db.select().from(transactionsSchema).where(eq(transactionsSchema.invoiceId, invoiceId));
+  const [invoice] = await db.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+  if (!invoice) {
+    throw new Response("Quotation not found", { status: 404 });
+  }
+  const [customer] = await db.select().from(customers).where(and(eq(customers.id, invoice.customerId), eq(customers.shopId, user.shopId!)));
+  const items = await db.select().from(itemsSchema).where(and(eq(itemsSchema.invoiceId, invoiceId), eq(itemsSchema.shopId, user.shopId!)));
+  const transactions = await db.select().from(transactionsSchema).where(and(eq(transactionsSchema.invoiceId, invoiceId), eq(transactionsSchema.shopId, user.shopId!)));
 
   return json({ invoice, customer, items, transactions });
 }

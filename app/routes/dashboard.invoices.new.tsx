@@ -71,7 +71,7 @@ export const action = async ({ request }: ActionArgs) => {
   const amountDue = totalAmount - amountPaid;
 
   const invoiceId: number = await db.transaction(async (tx) => {
-    let res = await tx.insert(customers).values(customer);
+    let res = await tx.insert(customers).values({ ...customer, shopId: user.shopId! });
     const customerId = Number(res.lastInsertRowid);
     const status = amountDue === 0 ? "FullyPaid" : amountDue < totalAmount ? "PartialPaid" : undefined;
     res = await tx.insert(invoices).values({ shopId: user.shopId!, userId, customerId, totalAmount, amountDue, status });

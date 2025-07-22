@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ActionArgs, json, redirect } from "@remix-run/node";
 import { db } from "~/utils/db.server";
 import { customers, invoices, items as itemsSchema } from "db/schema";
-import { requireUserId } from "~/utils/session.server";
+import { getUser } from "~/utils/session.server";
 
 // Zod schema for quotation form validation
 export const QuotationFormSchema = z.object({
@@ -27,7 +27,9 @@ export const QuotationFormSchema = z.object({
 
 
 export const action = async ({ request }: ActionArgs) => {
-  const userId = await requireUserId(request);
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
+  const userId = user.id;
   const formData = await request.formData();
   const itemNames = formData.getAll("itemNameQuotation");
   const itemPrices = formData.getAll("itemPriceQuotation");
@@ -56,7 +58,7 @@ export const action = async ({ request }: ActionArgs) => {
     .map((i) => i.price * i.quantity - i.discount)
     .reduce((p, c) => p + c, 0);
   const invoiceId: number = await db.transaction(async (tx) => {
-    let res = await tx.insert(customers).values(customer);
+    let res = await tx.insert(customers).values({ ...customer, shopId: user.shopId! });
     const customerId = Number(res.lastInsertRowid);
     res = await tx.insert(invoices).values({
       userId,
@@ -64,10 +66,11 @@ export const action = async ({ request }: ActionArgs) => {
       totalAmount,
       amountDue: totalAmount,
       type: "Quotation",
+      shopId: user.shopId!,
     });
     const invoiceId = Number(res.lastInsertRowid);
     for (const item of items) {
-      await tx.insert(itemsSchema).values({ ...item, invoiceId });
+      await tx.insert(itemsSchema).values({ ...item, invoiceId, shopId: user.shopId! });
     }
     return invoiceId;
   });

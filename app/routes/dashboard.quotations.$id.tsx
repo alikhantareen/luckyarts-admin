@@ -6,7 +6,7 @@ import ReactToPrint from "react-to-print";
 import React, { useEffect, useRef, useState } from "react";
 import { initModals, initDismisses } from "flowbite";
 import { db } from "~/utils/db.server";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import {
   Customer,
   Invoice,
@@ -18,7 +18,7 @@ import {
   items as itemsSchema,
   transactions as transactionsSchema,
 } from "db/schema";
-import { requireUserId } from "~/utils/session.server";
+import { requireUserId, getUser } from "~/utils/session.server";
 import { FaFacebook, FaGlobe, FaInstagram, FaYoutube, FaWhatsapp, FaLocationDot } from "react-icons/fa6";
 import { SiGmail } from "react-icons/si";
 
@@ -26,6 +26,8 @@ export const action = async ({ request, params }: ActionArgs) => {
   const formData = await request.formData();
   const workStatus = formData.get("workStatus") as InvoiceWorkStatus;
   const userId = await requireUserId(request);
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
   const transactionamount = Number(formData.get("transactionAmount"))!;
   const transactiondate = formData.get("transactionDate") as string;
   const transactionnote = formData.get("transactionNote") as string;
@@ -35,18 +37,18 @@ export const action = async ({ request, params }: ActionArgs) => {
   const invoiceId = Number(id);
 
   if (_action === "convert") {
-    await db.update(invoices).set({ type: "Invoice" }).where(eq(invoices.id, invoiceId));
+    await db.update(invoices).set({ type: "Invoice" }).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
     return redirect(`/dashboard/invoices/${invoiceId}`);
   }
   if (_action === "edit") {
     await db.transaction(async (tx) => {
-      const [invoice] = await tx.select().from(invoices).where(eq(invoices.id, invoiceId));
+      const [invoice] = await tx.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
 
       // Fetch the existing transaction to compare amounts
       const [existingTransaction] = await tx
         .select()
         .from(transactionsSchema)
-        .where(eq(transactionsSchema.id, Number(transactionId)));
+        .where(and(eq(transactionsSchema.id, Number(transactionId)), eq(transactionsSchema.shopId, user.shopId!)));
 
       // Calculate the difference in transaction amount
       const amountDifference = transactionamount - existingTransaction.amount;
@@ -64,7 +66,7 @@ export const action = async ({ request, params }: ActionArgs) => {
           createdAt: new Date(transactiondate),
           note: transactionnote,
         })
-        .where(eq(transactionsSchema.id, Number(transactionId)));
+        .where(and(eq(transactionsSchema.id, Number(transactionId)), eq(transactionsSchema.shopId, user.shopId!)));
 
       // Update invoice amount due
       const newAmountDue = invoice.amountDue - amountDifference;
@@ -76,14 +78,14 @@ export const action = async ({ request, params }: ActionArgs) => {
           amountDue: newAmountDue,
           status,
         })
-        .where(eq(invoices.id, invoiceId));
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
     });
 
     return json({ success: true });
   }
 
   if (_action === "update") {
-    await db.update(invoices).set({ workStatus }).where(eq(invoices.id, invoiceId));
+    await db.update(invoices).set({ workStatus }).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
     return json({ success: "workstatusupdate" });
   }
 
@@ -91,33 +93,39 @@ export const action = async ({ request, params }: ActionArgs) => {
     if (transactionamount > 0) {
       const date = transactiondate ? new Date(transactiondate) : undefined;
       await db.transaction(async (tx) => {
-        const [invoice] = await tx.select().from(invoices).where(eq(invoices.id, invoiceId));
+        const [invoice] = await tx.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
         if (transactionamount > invoice.amountDue) {
           throw new Error("Transaction amount cannot be greated than amount due");
         }
         await tx.insert(transactionsSchema).values({
           userId,
           invoiceId,
+          shopId: user.shopId!,
           amount: transactionamount,
           createdAt: date,
           note: transactionnote,
         });
         const amountDue = invoice.amountDue - transactionamount;
         const status = amountDue === 0 ? "FullyPaid" : "PartialPaid";
-        await tx.update(invoices).set({ status, amountDue }).where(eq(invoices.id, invoiceId));
+        await tx.update(invoices).set({ status, amountDue }).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
       });
       return json({ success: true });
     }
   }
 };
 
-export async function loader({ params }: LoaderArgs) {
+export async function loader({ request, params }: LoaderArgs) {
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
   const { id } = params;
   const invoiceId = Number(id);
-  const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId));
-  const [customer] = await db.select().from(customers).where(eq(customers.id, invoice.customerId));
-  const items = await db.select().from(itemsSchema).where(eq(itemsSchema.invoiceId, invoiceId));
-  const transactions = await db.select().from(transactionsSchema).where(eq(transactionsSchema.invoiceId, invoiceId));
+  const [invoice] = await db.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+  if (!invoice) {
+    throw new Response("Quotation not found", { status: 404 });
+  }
+  const [customer] = await db.select().from(customers).where(and(eq(customers.id, invoice.customerId), eq(customers.shopId, user.shopId!)));
+  const items = await db.select().from(itemsSchema).where(and(eq(itemsSchema.invoiceId, invoiceId), eq(itemsSchema.shopId, user.shopId!)));
+  const transactions = await db.select().from(transactionsSchema).where(and(eq(transactionsSchema.invoiceId, invoiceId), eq(transactionsSchema.shopId, user.shopId!)));
   return json({ invoice, customer, items, transactions });
 }
 

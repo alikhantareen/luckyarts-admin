@@ -5,6 +5,7 @@ import { like, eq } from "drizzle-orm";
 import { db } from "~/utils/db.server";
 import { users, shops } from "db/schema";
 import { getUser } from "~/utils/session.server";
+import bcrypt from "bcryptjs";
 
 export async function loader({ request }: LoaderArgs) {
   const user = await getUser(request);
@@ -26,7 +27,7 @@ export async function action({ request }: ActionArgs) {
   const email = form.get("email") as string;
   const password = form.get("password") as string;
   const shopId = Number(form.get("shopId"));
-  await db.insert(users).values({ email, password, role: "ShopAdmin", shopId });
+  await db.insert(users).values({ email, password: bcrypt.hashSync(password), role: "ShopAdmin", shopId });
   return redirect("/dashboard/users");
 }
 
