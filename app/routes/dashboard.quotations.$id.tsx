@@ -36,6 +36,10 @@ export const action = async ({ request, params }: ActionArgs) => {
   const { id } = params;
   const invoiceId = Number(id);
 
+  if (_action === "convert") {
+    await db.update(invoices).set({ type: "Invoice" }).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+    return redirect(`/dashboard/invoices/${invoiceId}`);
+  }
   if (_action === "edit") {
     await db.transaction(async (tx) => {
       const [invoice] = await tx.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
@@ -117,7 +121,7 @@ export async function loader({ request, params }: LoaderArgs) {
   const invoiceId = Number(id);
   const [invoice] = await db.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
   if (!invoice) {
-    throw new Response("Invoice not found", { status: 404 });
+    throw new Response("Quotation not found", { status: 404 });
   }
   const [customer] = await db.select().from(customers).where(and(eq(customers.id, invoice.customerId), eq(customers.shopId, user.shopId!)));
   const items = await db.select().from(itemsSchema).where(and(eq(itemsSchema.invoiceId, invoiceId), eq(itemsSchema.shopId, user.shopId!)));
@@ -125,7 +129,7 @@ export async function loader({ request, params }: LoaderArgs) {
   return json({ invoice, customer, items, transactions });
 }
 
-export default function InvoiceRoute() {
+export default function QuotationRoute() {
   const actionData = useActionData();
   const transition = useNavigation();
   const [isDisabled, setDisable] = useState(false);
@@ -236,10 +240,10 @@ export default function InvoiceRoute() {
                 ></path>
               </svg>
               <Link
-                to="/dashboard/invoices"
+                to="/dashboard/quotations"
                 className="ml-1 text-gray-700 hover:text-primary-600 md:ml-2 dark:text-gray-300 dark:hover:text-white"
               >
-                Invoices
+                Quotations
               </Link>
             </div>
           </li>
@@ -265,18 +269,23 @@ export default function InvoiceRoute() {
         </ol>
       </nav>
       <div className="w-full text-xl font-semibold text-gray-900 sm:text-2xl dark:text-white flex justify-start">
-        Invoice Details
+        Quotation Details
       </div>
       {/* <div>Status: {invoice?.status}</div> */}
-      <div className="w-full flex justify-end mb-5">
+      <div className="w-full flex justify-end mb-5 gap-2">
         <ReactToPrint
           trigger={() => (
-            <button className="inline-flex justify-end items-center px-5 py-2.5 mt-4 sm:mt-6 text-sm font-medium text-center border-stone-950 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] hover:bg-[#f3c41a]">
+            <button className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-center border border-stone-950 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] hover:bg-[#f3c41a]">
               Print
             </button>
           )}
           content={() => componentRef.current}
         />
+        <Form method="post">
+          <button name="_action" value="convert" className="inline-flex items-center px-5 py-2.5 text-sm font-medium text-center border border-stone-950 bg-[#f3c41a] rounded-lg focus:ring-2 focus:ring-slate-900 hover:bg-[#f3c41a]">
+            Convert to invoice
+          </button>
+        </Form>
       </div>
       <div className="flex flex-col gap-5 md:flex-row">
         <div className="bg-white rounded-lg border-2 border-slate-300 flex-1">
@@ -287,126 +296,6 @@ export default function InvoiceRoute() {
             items={items}
             transactions={transactions}
           />
-        </div>
-        <div className="flex flex-col gap-5 md:w-2/6 h-fit">
-          <div className="p-5 flex w-full flex-col gap-5 h-fit bg-white rounded-lg border-2 border-slate-300">
-            <p className="border-b-2 border-black font-bold p-2 text-lg">Work Status</p>
-            {invoice?.workStatus?.toLocaleLowerCase() === "completed" ? (
-              <p>
-                Current Status:{" "}
-                <span
-                  className={`${
-                    invoice?.workStatus?.toLocaleLowerCase() === "completed"
-                      ? "text-green-500"
-                      : invoice?.workStatus?.toLocaleLowerCase() === "pending"
-                      ? "text-red-500"
-                      : "text-slate-500"
-                  } font-bold text-md`}
-                >
-                  {invoice?.workStatus?.toLocaleUpperCase()}
-                </span>
-              </p>
-            ) : (
-              <div>
-                <p>
-                  Current Status:{" "}
-                  <span
-                    className={`${
-                      invoice?.workStatus?.toLocaleLowerCase() === "completed"
-                        ? "text-green-500"
-                        : invoice?.workStatus?.toLocaleLowerCase() === "pending"
-                        ? "text-red-500"
-                        : "text-slate-500"
-                    } font-bold text-md`}
-                  >
-                    {invoice?.workStatus?.toLocaleUpperCase()}
-                  </span>
-                </p>
-                <div>
-                  <Form method="post" action={`/dashboard/invoices/${invoice?.id}`} className="flex flex-col gap-5">
-                    <label
-                      htmlFor="countries"
-                      className="block -mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                    >
-                      Change Status
-                    </label>
-                    <select
-                      id="workstatuses"
-                      name="workStatus"
-                      className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                    >
-                      <option selected value={"Pending"}>
-                        Pending
-                      </option>
-                      <option value={"InProgress"}>In progress</option>
-                      <option value={"Completed"}>Completed</option>
-                    </select>
-                    <input type="text" hidden name="statusID" defaultValue={invoice?.id} />
-                    <button
-                      name="_action"
-                      value="update"
-                      type="submit"
-                      className="w-fit self-end inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg border border-stone-950 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
-                    >
-                      {transition.state === "submitting" ? "Changing..." : "Change Status"}
-                    </button>
-                  </Form>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="p-5 flex w-full flex-col gap-5 h-fit bg-white rounded-lg border-2 border-slate-300">
-            <p className="border-b-2 border-black font-bold p-2 text-lg">Transaction History</p>
-            {transactions.length === 0 ? (
-              <p className="text-sm text-slate-500">No transaction has been made yet.</p>
-            ) : (
-              <div className="w-full flex justify-between">
-                <p className="font-bold">Date</p>
-                <p className="font-bold">Amount</p>
-                <p className="font-bold">Action</p>
-              </div>
-            )}
-            <div>
-              {transactions.map((elem, key) => {
-                return (
-                  <>
-                    <div key={key} className="w-full flex justify-between items-center">
-                      <p>{formatDate(new Date(elem.createdAt).toDateString())}</p>
-                      <p>{elem.amount}</p>
-                      <button
-                        onClick={() => {
-                          setEditingTransaction(null);
-                          handleEditTransaction(elem as any);
-                        }}
-                        data-modal-target="editTransactionModal"
-                        data-modal-toggle="editTransactionModal"
-                        className="text-blue-500 hover:text-blue-700"
-                      >
-                        Edit
-                      </button>
-                    </div>
-                    <p className="text-sm border-b-2 border-slate-900 mb-2">
-                      <span className="font-semibold">Note: </span>
-                      {elem.note}
-                    </p>
-                  </>
-                );
-              })}
-            </div>
-            <div className="flex justify-end">
-              {invoice?.amountDue! > 0 ? (
-                <button
-                  data-modal-target="staticModal"
-                  data-modal-toggle="staticModal"
-                  className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg border-stone-950 border hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900 dark:focus:ring-[#f3c41a] dark:hover:bg-[#f3c41a]"
-                >
-                  Add transaction
-                </button>
-              ) : (
-                ""
-              )}
-            </div>
-          </div>
         </div>
       </div>
       {/* transaction modal */}
@@ -435,7 +324,7 @@ export default function InvoiceRoute() {
                 </svg>
               </button>
             </div>
-            <Form method="post" action={`/dashboard/invoices/${invoice?.id}`}>
+            <Form method="post" action={`/dashboard/quotations/${invoice?.id}`}>
               <div className="p-6 space-y-6">
                 <div className="flex mb-4 flex-col">
                   <div className="flex gap-4 items-center mb-4">
@@ -546,7 +435,7 @@ export default function InvoiceRoute() {
               </button>
             </div>
             {editingTransaction && (
-              <Form method="post" action={`/dashboard/invoices/${invoice?.id}`}>
+              <Form method="post" action={`/dashboard/quotations/${invoice?.id}`}>
                 <div className="p-6 space-y-6">
                   <div className="flex mb-4 flex-col">
                     <input type="hidden" name="transactionId" value={editingTransaction.id} />

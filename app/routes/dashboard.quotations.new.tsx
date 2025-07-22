@@ -1,11 +1,10 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Form, Link } from "@remix-run/react";
 import { z } from "zod";
-import ReactToPrint from "react-to-print";
-import { FaWhatsapp, FaLocationDot, FaGlobe, FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa6";
-import { SiGmail } from "react-icons/si";
-import second_logo from "../assets/second_logo.png";
-import bill_logo from "../assets/final_logo.png";
+import { ActionArgs, json, redirect } from "@remix-run/node";
+import { db } from "~/utils/db.server";
+import { customers, invoices, items as itemsSchema } from "db/schema";
+import { getUser } from "~/utils/session.server";
 
 // Zod schema for quotation form validation
 export const QuotationFormSchema = z.object({
@@ -26,6 +25,59 @@ export const QuotationFormSchema = z.object({
     .nonempty(),
 });
 
+
+export const action = async ({ request }: ActionArgs) => {
+  const user = await getUser(request);
+  if (!user) throw redirect("/login");
+  const userId = user.id;
+  const formData = await request.formData();
+  const itemNames = formData.getAll("itemNameQuotation");
+  const itemPrices = formData.getAll("itemPriceQuotation");
+  const itemDiscounts = formData.getAll("itemDiscountQuotation");
+  const itemQuantities = formData.getAll("itemQuantityQuotation");
+  const itemDescriptions = formData.getAll("itemDescriptionQuotation");
+  const customer = {
+    name: formData.get("customerNameQuotation") as string,
+    phone: formData.get("customerPhoneQuotation") as string,
+  };
+  const items: { name: string; price: number; discount: number; quantity: number; description: string }[] = [];
+  for (let i = 0; i < itemNames.length; i++) {
+    items.push({
+      name: itemNames[i] as string,
+      price: Number(itemPrices[i]),
+      discount: Number(itemDiscounts[i]),
+      quantity: Number(itemQuantities[i]),
+      description: itemDescriptions[i] as string,
+    });
+  }
+  const parseResult = QuotationFormSchema.safeParse({ customer, items });
+  if (!parseResult.success) {
+    return json(parseResult.error);
+  }
+  const totalAmount = items
+    .map((i) => i.price * i.quantity - i.discount)
+    .reduce((p, c) => p + c, 0);
+  const invoiceId: number = await db.transaction(async (tx) => {
+    let res = await tx.insert(customers).values({ ...customer, shopId: user.shopId! });
+    const customerId = Number(res.lastInsertRowid);
+    res = await tx.insert(invoices).values({
+      userId,
+      customerId,
+      totalAmount,
+      amountDue: totalAmount,
+      type: "Quotation",
+      shopId: user.shopId!,
+    });
+    const invoiceId = Number(res.lastInsertRowid);
+    for (const item of items) {
+      await tx.insert(itemsSchema).values({ ...item, invoiceId, shopId: user.shopId! });
+    }
+    return invoiceId;
+  });
+
+  return redirect(`/dashboard/quotations/${invoiceId}`);
+};
+
 export default function NewQuotationRoute() {
   const [items, setItems] = useState([
     {
@@ -37,8 +89,6 @@ export default function NewQuotationRoute() {
     },
   ]);
 
-  const [formData, setFormData] = useState<any | null>(null);
-  const componentRef = useRef<HTMLDivElement | null>(null);
 
   // Reset form state when component unmounts
   useEffect(() => {
@@ -54,8 +104,6 @@ export default function NewQuotationRoute() {
         },
       ]);
 
-      // Reset form data
-      setFormData(null);
     };
   }, []); // Empty dependency array ensures this runs only on unmount
 
@@ -94,46 +142,6 @@ export default function NewQuotationRoute() {
     setItems(items.map((item, i) => (i === index ? { ...item, ...updates } : item)));
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault(); // Prevent default form submission
-
-    // Update the input element identifiers
-    const customerName = (event.currentTarget.elements.namedItem("customerNameQuotation") as HTMLInputElement).value;
-    const customerPhone = (event.currentTarget.elements.namedItem("customerPhoneQuotation") as HTMLInputElement).value;
-
-    // Prepare items information
-    const formattedItems = items.map((item, index) => ({
-      name: item.itemName,
-      price: item.itemPrice,
-      quantity: item.itemQuantity,
-      description: item.itemDescription,
-      discount: item.itemDiscount,
-      subtotal: item.itemPrice * item.itemQuantity - item.itemDiscount,
-    }));
-
-    // Prepare the complete form data
-    const quotationData = {
-      customer: {
-        name: customerName,
-        phone: customerPhone,
-      },
-      items: formattedItems,
-      total: total + items.map((i) => i.itemDiscount).reduce((p, n) => p + n, 0),
-    };
-
-    // Set form data to trigger print
-    setFormData(quotationData);
-
-    // Trigger print dialog after a short delay to ensure the component is rendered
-    setTimeout(() => {
-      if (componentRef.current) {
-        const printTrigger = document.querySelector(".react-to-print-trigger") as HTMLButtonElement;
-        if (printTrigger) {
-          printTrigger.click();
-        }
-      }
-    }, 100);
-  };
 
   return (
     <div className="mx-auto max-w-3xl lg:mt-1.5 p-4">
@@ -201,7 +209,7 @@ export default function NewQuotationRoute() {
 
       <h2 className="mb-4 text-3xl font-bold text-gray-900">Create a new quotation</h2>
 
-      <Form method="post" onSubmit={handleSubmit}>
+      <Form method="post" >
         <fieldset className="grid gap-4 sm:grid-cols-2">
           {/* Customer Information Section */}
           <h3 className="text-lg font-medium text-white px-4 py-2 bg-gray-800 sm:col-span-2 rounded-sm">
@@ -389,220 +397,7 @@ export default function NewQuotationRoute() {
         </fieldset>
       </Form>
 
-      {formData && (
-        <div className="hidden">
-          <ReactToPrint
-            trigger={() => (
-              <button type="button" className="react-to-print-trigger">
-                Print
-              </button>
-            )}
-            content={() => componentRef.current}
-          />
-          <QuotationPrintComponent ref={componentRef} quotationData={formData} />
-        </div>
-      )}
     </div>
   );
 }
 
-// New component for printing quotation
-type QuotationPrintComponentProps = {
-  quotationData: {
-    customer: { name: string; phone: string };
-    items: Array<{
-      name: string;
-      price: number;
-      quantity: number;
-      description?: string;
-      discount?: number;
-      subtotal: number;
-    }>;
-    total: number;
-  };
-};
-
-const QuotationPrintComponent = React.forwardRef<HTMLDivElement | null, QuotationPrintComponentProps>((props, ref) => {
-  const { quotationData } = props;
-  // const totalDiscount = quotationData.items.map((i) => i.discount ?? 0).reduce((p, n) => p + n, 0);
-  const currentDate = new Date();
-  function formatDate(inputDate: Date) {
-    return inputDate.toLocaleDateString("en-GB"); // DD/MM/YYYY format
-  }
-
-  function extractTime(date: Date) {
-    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-  }
-
-  return (
-    <div ref={ref} className="mt-4 print:mt-8">
-      <div className="md:relative print:relative md:border-b-[16px] print:border-b-[16px] border-[#fdca01] print:border-stone-950 flex justify-between flex-col gap-2 md:gap-0 print:gap-0 md:flex-row print:flex-row p-2 md:p-0 print:p-0">
-        <div className="flex items-end gap-2 print:items-end">
-          <img
-            width={80}
-            src={second_logo}
-            alt="logo"
-            className="ml-0 md:ml-4 print:ml-4 print:hidden p-2 bg-[#fdca01]"
-          />
-          <img width={70} src={bill_logo} alt="logo" className="ml-0 md:ml-4 print:ml-4 hidden print:block" />
-          <div className="font-lemon flex flex-col items-center">
-            <p className="text-2xl md:text-4xl print:text-4xl font-bold">LUCKY ARTS</p>
-            <p className="text-xs font-semibold">SINCE 1985</p>
-            <p className="text-xs font-semibold md:hidden print:hidden">THE NAME OF QUALITY</p>
-          </div>
-        </div>
-        <div className="mb-2 flex flex-col justify-center md:justify-end print:justify-end md:items-end print:items-end items-start mr-4">
-          <p className="text-xs font-semibold">Ashfaq Ahmad Khan Khakwani</p>
-          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
-            <FaWhatsapp /> 0307-6667200
-          </p>
-          <p className="text-xs font-semibold">Mudassir Khan Khakwani</p>
-          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
-            <FaWhatsapp /> 0306-6667200
-          </p>
-          <p className="text-xs font-semibold flex items-center gap-1">
-            <SiGmail />
-            lucky_arts72@gmail.com
-          </p>
-          <p className="text-xs font-semibold flex items-center gap-1">
-            <FaLocationDot /> Abdali road near chowk fawara, Multan
-          </p>
-        </div>
-        <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute top-[112px] left-[145px] print:left-[144px] print:text-white">
-          THE NAME OF QUALITY
-        </p>
-      </div>
-      <div className="flex justify-between px-4 mt-2">
-        <div className="flex flex-col self-center">
-          <p className="text-lg font-bold">Customer Details:</p>
-          <p className="text-md italic">{quotationData.customer.name}</p>
-          <p className="text-md italic">{quotationData.customer.phone}</p>
-        </div>
-        <div className="">
-          <p className="text-lg font-bold">QUOTATION</p>
-          <p className="text-lg font-bold">
-            Date: <span className="font-normal">{formatDate(currentDate)}</span>
-          </p>
-          <p className="text-lg font-bold">
-            Time: <span className="font-normal">{extractTime(currentDate)}</span>
-          </p>
-          <p className="text-lg font-bold">
-            NTN#: <span className="font-normal">0103866-4</span>
-          </p>
-        </div>
-      </div>
-      <div className="p-4">
-        <table className="w-full mt-3 md:mt-2 border-collapse mb-16">
-          <thead>
-            <tr className="grid grid-cols-5 md:grid-cols-9 print:grid-cols-9 text-right p-2 bg-stone-950 text-white">
-              <th className="col-span-1 text-center text-sm">Sr.No#</th>
-              <th className="col-span-2 md:col-span-4 print:col-span-4 text-center text-sm">Item Description</th>
-              <th className="col-span-1 text-center text-sm">Size</th>
-              <th className="hidden md:block print:block text-center text-sm">Price </th>
-              <th className="hidden md:block print:block text-center text-sm">Qty</th>
-              <th className="col-span-1 text-right text-sm">Total Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {quotationData.items.map((elem, key) => (
-              <tr key={key} className={`grid grid-cols-5 md:grid-cols-9 print:grid-cols-9`}>
-                <td className="col-span-1 text-center border-b-2 border-l-2 border-t-2 border-stone-950 font-bold">
-                  <p className="">{key + 1}</p>
-                </td>
-                <td className="col-span-2 md:col-span-4 print:col-span-4 text-left px-2 border-b-2 border-l-2 border-t-2 border-stone-950 font-bold">
-                  <p className="">{elem.name}</p>
-                </td>
-                <td className="col-span-1 font-bold text-center border-b-2 border-l-2 border-t-2 border-stone-950">
-                  {elem.description || ""}
-                </td>
-                <td className="hidden md:block print:block font-bold text-center border-b-2 border-l-2 border-t-2 border-stone-950">
-                  {elem.price}
-                </td>
-                <td className="hidden md:block print:block font-bold text-center border-b-2 border-l-2 border-t-2 border-stone-950">
-                  {elem.quantity}
-                </td>
-                <td className="border-stone-950 font-bold text-right px-2 border-b-2 border-l-2 border-t-2 border-r-2">{`${
-                  elem.quantity * elem.price
-                }`}</td>
-              </tr>
-            ))}
-          </tbody>
-          {/* <div className="w-full flex justify-end">
-            <div className="border-b-2 border-l-2 border-r-2 border-stone-950 w-[18rem] flex flex-col">
-              <div className="mt-2 mb-2">
-                <span className="flex justify-between font-bold mb-2 text-stone-950 ">
-                  <div className="flex justify-end w-2/3">
-                    <p>Sub Total:</p>
-                  </div>
-                  <div className="flex justify-end w-1/3 px-2">
-                    <p className="">{quotationData.total}</p>
-                  </div>
-                </span>
-                {totalDiscount > 0 ? (
-                  <span className="flex justify-between font-bold mb-2">
-                    <div className="flex justify-end w-2/3">
-                      <p>Discount:</p>
-                    </div>
-                    <div className="flex justify-end w-1/3 px-2">
-                      <p className="">{totalDiscount}</p>
-                    </div>
-                  </span>
-                ) : (
-                  ""
-                )}
-                <span className="flex p-2 -mb-2 justify-between font-bold bg-[#fdca01] print:bg-stone-950 print:text-white">
-                  <div className="flex justify-end w-2/3">
-                    <p>Total Payment:</p>
-                  </div>
-                  <div className="flex justify-end w-1/3">
-                    <p className="">{quotationData.total - totalDiscount}</p>
-                  </div>
-                </span>
-              </div>
-            </div>
-          </div> */}
-        </table>
-      </div>
-      <div className="px-4 mb-4">
-        <p className="font-bold text-xl">Thank you for your interest 😊</p>
-      </div>
-      <div className="flex flex-col gap-8 md:flex-row print:flex-row justify-between px-4 mb-4">
-        <div>
-          <p className="font-bold text-md">TERMS & CONDITIONS</p>
-          <ol className="list-decimal list-inside text-sm">
-            <li>Quotation is valid for 7 days from the date of issue</li>
-            <li>Prices are subject to change without prior notice</li>
-            <li>Final pricing will be confirmed upon order placement</li>
-          </ol>
-        </div>
-      </div>
-      <div className="px-4 mb-4">
-        <p className="font-bold text-lg flex flex-col">
-          For online shopping, please visit our store at
-          <span className="text-md font-normal">www.luckyarts.org</span>
-        </p>
-      </div>
-      <div className="flex flex-col md:flex-row print:flex-row justify-between items-center px-4 mb-4">
-        <div className="flex gap-1 text-sm">
-          <span className="flex items-center gap-1">
-            <FaGlobe /> www.luckyarts.org
-          </span>
-          <span className="flex items-center gap-1">
-            <FaFacebook /> @luckyarts.pk
-          </span>
-          <span className="flex items-center gap-1">
-            <FaInstagram /> @luckyarts.pk
-          </span>
-          <span className="flex items-center gap-1">
-            <FaYoutube />
-            @luckyarts.pk
-          </span>
-        </div>
-        <div className="flex flex-col gap-1 items-center mt-8">
-          <span className="font-bold">_________________________________</span>
-          <span>Authorized Signature</span>
-        </div>
-      </div>
-    </div>
-  );
-});

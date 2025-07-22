@@ -124,7 +124,7 @@ export const action = async ({ request, params }: ActionArgs) => {
     }
   });
 
-  return redirect(`/dashboard/invoices/${invoiceId}`);
+  return redirect(`/dashboard/quotations/${invoiceId}`);
 };
 
 export async function loader({ request, params }: LoaderArgs) {
@@ -135,7 +135,7 @@ export async function loader({ request, params }: LoaderArgs) {
 
   const [invoice] = await db.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
   if (!invoice) {
-    throw new Response("Invoice not found", { status: 404 });
+    throw new Response("Quotation not found", { status: 404 });
   }
   const [customer] = await db.select().from(customers).where(and(eq(customers.id, invoice.customerId), eq(customers.shopId, user.shopId!)));
   const items = await db.select().from(itemsSchema).where(and(eq(itemsSchema.invoiceId, invoiceId), eq(itemsSchema.shopId, user.shopId!)));
@@ -144,7 +144,7 @@ export async function loader({ request, params }: LoaderArgs) {
   return json({ invoice, customer, items, transactions });
 }
 
-export default function EditInvoiceRoute() {
+export default function EditQuotationRoute() {
   const { invoice, customer, items: loadedItems, transactions } = useLoaderData<typeof loader>();
   const transition = useNavigation();
 
@@ -211,10 +211,10 @@ export default function EditInvoiceRoute() {
                 ></path>
               </svg>
               <Link
-                to="/dashboard/invoices"
+                to="/dashboard/quotations"
                 className="ml-1 text-gray-700 hover:text-primary-600 md:ml-2 dark:text-gray-300 dark:hover:text-white"
               >
-                Invoices
+                Quotations
               </Link>
             </div>
           </li>
@@ -233,14 +233,14 @@ export default function EditInvoiceRoute() {
                 ></path>
               </svg>
               <span className="ml-1 text-gray-400 md:ml-2 dark:text-gray-500" aria-current="page">
-                Edit Invoice
+                Edit Quotation
               </span>
             </div>
           </li>
         </ol>
       </nav>
-      <h2 className="mb-4 text-3xl font-bold text-gray-900">Edit Invoice #{invoice.id}</h2>
-      <Form method="post" action={`/dashboard/invoices/edit/${invoice.id}`}>
+      <h2 className="mb-4 text-3xl font-bold text-gray-900">Edit Quotation #{invoice.id}</h2>
+      <Form method="post" action={`/dashboard/quotations/edit/${invoice.id}`}>
         <fieldset disabled={transition.state === "submitting"} className="grid gap-4 sm:grid-cols-2">
           <h3 className="text-lg font-medium text-white px-4 py-2 bg-gray-800 sm:col-span-2 rounded-sm">
             Customer Information
@@ -493,7 +493,7 @@ export default function EditInvoiceRoute() {
               type="submit"
               className="w-full sm:w-fit text-slate-900 bg-[#f3c41a] focus:ring-2 focus:ring-slate-900 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-[#f3c41a] focus:outline-none dark:focus:ring-slate-900"
             >
-              {transition.state === "submitting" ? "Updating..." : "Update invoice"}
+              {transition.state === "submitting" ? "Updating..." : "Update quotation"}
             </button>
           </p>
         </fieldset>
