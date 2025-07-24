@@ -19,6 +19,7 @@ import {
   transactions as transactionsSchema,
 } from "db/schema";
 import { requireUserId, getUser } from "~/utils/session.server";
+import { getDisplayNumber } from "~/utils/invoices";
 import { FaFacebook, FaGlobe, FaInstagram, FaYoutube, FaWhatsapp, FaLocationDot } from "react-icons/fa6";
 import { SiGmail } from "react-icons/si";
 
@@ -807,10 +808,11 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           <p className="text-lg font-bold">Customer Details:</p>
           <p className="text-md italic">{customer.name}</p>
           <p className="text-md italic">{customer.phone}</p>
+          {customer.phone2 && <p className="text-md italic">{customer.phone2}</p>}
         </div>
         <div className="">
           <p className="text-lg font-bold">
-            Invoice#: <span className="font-normal">{invoice.id}</span>
+            Invoice#: <span className="font-normal">{getDisplayNumber(invoice)}</span>
           </p>
           <p className="text-lg font-bold">
             Date: <span className="font-normal">{formatDate(new Date(invoice.createdAt!).toDateString())}</span>

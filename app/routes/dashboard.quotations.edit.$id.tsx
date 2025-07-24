@@ -11,6 +11,7 @@ export const InvoiceEditFormSchema = z.object({
   customer: z.object({
     name: z.string().min(1, { message: "Customer name is required" }),
     phone: z.string().min(1, { message: "Customer phone is required" }),
+    phone2: z.string().optional(),
   }),
   items: z
     .array(
@@ -40,9 +41,11 @@ export const action = async ({ request, params }: ActionArgs) => {
   const itemQuantities = formData.getAll("itemQuantityEdit");
   const itemDescriptions = formData.getAll("itemDescriptionEdit");
   const amountPaid = Number(formData.get("amountPaidEdit"));
+  const phone2Value = formData.get("customerPhone2Edit") as string;
   const customer = {
     name: formData.get("customerNameEdit") as string,
     phone: formData.get("customerPhoneEdit") as string,
+    phone2: phone2Value && phone2Value.trim() ? phone2Value.trim() : undefined,
   };
 
   const items: { name: string; price: number; discount: number; quantity: number; description: string }[] = [];
@@ -79,9 +82,16 @@ export const action = async ({ request, params }: ActionArgs) => {
   await db.transaction(async (tx) => {
     // Update customer
     const [invoiceForCustomer] = await tx.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+    const updateData: any = { name: customer.name, phone: customer.phone };
+    if (customer.phone2 !== undefined) {
+      updateData.phone2 = customer.phone2;
+    } else {
+      updateData.phone2 = null;
+    }
+    
     await tx
       .update(customers)
-      .set({ name: customer.name, phone: customer.phone })
+      .set(updateData)
       .where(and(eq(customers.id, invoiceForCustomer.customerId), eq(customers.shopId, user.shopId!)));
 
     // Update invoice
@@ -270,6 +280,20 @@ export default function EditQuotationRoute() {
               minLength={11}
               placeholder="Type customer phone"
               required
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+            />
+          </p>
+          <p className="w-full px-4 sm:pr-0">
+            <label htmlFor="customerPhone2Edit" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Phone 2 (Optional)
+            </label>
+            <input
+              name="customerPhone2Edit"
+              type="text"
+              defaultValue={customer.phone2 || ''}
+              maxLength={11}
+              minLength={11}
+              placeholder="Type second phone number (optional)"
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
             />
           </p>

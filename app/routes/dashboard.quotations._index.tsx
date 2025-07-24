@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { db } from "~/utils/db.server";
 import { eq, inArray, and, sql, desc, like, or } from "drizzle-orm";
 import { getUser } from "~/utils/session.server";
+import { getDisplayNumber } from "~/utils/invoices";
 import { InvoiceStatus, InvoiceWorkStatus, customers, invoices, items, transactions } from "db/schema";
 
 // Update relavant const on server: lib/invoice.server.ts
@@ -308,7 +309,7 @@ export default function QuotationsIndexRoute() {
                           }`}
                           key={invoice.id}
                         >
-                          <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">#{invoice.id}</td>
+                          <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">#{getDisplayNumber(invoice)}</td>
                           <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
                             {formatDate(new Date(invoice.createdAt!).toDateString())}
                           </td>

@@ -1,6 +1,6 @@
 import { LoaderArgs, json, redirect } from "@remix-run/node";
 import { Form, NavLink, useLoaderData } from "@remix-run/react";
-import { invoices, transactions as transactionsSchema } from "db/schema";
+import { invoices, transactions as transactionsSchema, shops } from "db/schema";
 import { between, gte, lte, desc, eq, and } from "drizzle-orm";
 import { db } from "~/utils/db.server";
 import { getUser } from "~/utils/session.server";
@@ -45,11 +45,17 @@ export async function loader({ request }: LoaderArgs) {
     .limit(10)
     .orderBy(desc(transactionsSchema.id));
 
-  return json({ invoice: result, transactions });
+  // Fetch shop information
+  const [shop] = await db
+    .select()
+    .from(shops)
+    .where(eq(shops.id, user.shopId!));
+
+  return json({ invoice: result, transactions, shop });
 }
 
 export default function Index() {
-  const { invoice, transactions } = useLoaderData<typeof loader>();
+  const { invoice, transactions, shop } = useLoaderData<typeof loader>();
   
   function invoicesCounter(condition: string, invoice: Array<any>): any {
     let accumulatedValue = invoice.reduce((accum, current) => {
@@ -116,8 +122,8 @@ export default function Index() {
     <div className="min-h-screen p-6 bg-white dark:bg-gray-900">
       {/* Header Section */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-lemon mb-2">
-          Welcome to Your Dashboard
+        <h1 className="text-xl md:text-3xl font-bold text-gray-900 dark:text-white font-lemon mb-2">
+          Welcome to {shop?.name || 'Your Shop'}
         </h1>
         <p className="text-gray-600 dark:text-gray-300 text-lg">
           Monitor your business performance and track important metrics
@@ -213,13 +219,13 @@ export default function Index() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                       </svg>
                     </div>
-                    <span className="text-sm font-medium text-[#f3c41a]">Partial</span>
+                    <span className="text-sm font-medium text-[#7e691e]">Partial</span>
                   </div>
                   <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                     {invoicesCounter("partialpaid", invoice)}
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                    Amount: <span className="font-semibold text-[#f3c41a]">Rs. {invoicesPaymentCalculator("partialpaid", invoice)}</span>
+                    Amount: <span className="font-semibold text-[#7e691e]">Rs. {invoicesPaymentCalculator("partialpaid", invoice)}</span>
                   </p>
                   <NavLink
                     to="invoices?status=PartialPaid"
@@ -314,7 +320,7 @@ export default function Index() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </div>
-                    <span className="text-sm font-medium text-[#f3c41a]">In Progress</span>
+                    <span className="text-sm font-medium text-[#7e691e]">In Progress</span>
                   </div>
                   <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
                     {ordersStatusCounter("inprogress", invoice)}
@@ -402,7 +408,6 @@ export default function Index() {
                         <p className="text-sm font-bold text-green-600 dark:text-green-400">
                           Rs. {elem.amount}
                         </p>
-                        <div className="w-2 h-2 rounded-full bg-green-500 mt-1"></div>
                       </div>
                     </div>
                   </div>

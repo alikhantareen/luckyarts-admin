@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const shops = sqliteTable("shops", {
   id: integer("id").primaryKey(),
@@ -20,6 +20,7 @@ export const customers = sqliteTable("customers", {
   id: integer("id").primaryKey(),
   name: text("name"),
   phone: text("phone"),
+  phone2: text("phone2"),
   shopId: integer("shop_id")
     .references(() => shops.id)
     .notNull(),
@@ -37,6 +38,7 @@ export const invoices = sqliteTable("invoices", {
     .references(() => customers.id)
     .notNull(),
     type: text("type", { enum: ["Invoice", "Quotation"] }).notNull().default("Invoice"),
+  displayNumber: integer("display_number"),
   status: text("status", { enum: ["Unpaid", "PartialPaid", "FullyPaid", "Archived"] })
     .notNull()
     .default("Unpaid"),
@@ -48,7 +50,13 @@ export const invoices = sqliteTable("invoices", {
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(STRFTIME('%s', 'now'))`),
-});
+}, (table) => ({
+  shopTypeDisplayNumberIdx: uniqueIndex("shop_type_display_number_idx").on(
+    table.shopId,
+    table.type,
+    table.displayNumber
+  ),
+}));
 
 export const invoicesRelations = relations(invoices, ({ one }) => ({
   customer: one(customers, {

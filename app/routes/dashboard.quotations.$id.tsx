@@ -19,6 +19,8 @@ import {
   transactions as transactionsSchema,
 } from "db/schema";
 import { requireUserId, getUser } from "~/utils/session.server";
+import { getDisplayNumber } from "~/utils/invoices";
+import { getNextDisplayNumber } from "~/utils/invoices.server";
 import { FaFacebook, FaGlobe, FaInstagram, FaYoutube, FaWhatsapp, FaLocationDot } from "react-icons/fa6";
 import { SiGmail } from "react-icons/si";
 
@@ -37,12 +39,24 @@ export const action = async ({ request, params }: ActionArgs) => {
   const invoiceId = Number(id);
 
   if (_action === "convert") {
-    await db.update(invoices).set({ type: "Invoice" }).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+    // Generate a new display number for the invoice
+    const newDisplayNumber = await getNextDisplayNumber(user.shopId!, "Invoice");
+    
+    await db
+      .update(invoices)
+      .set({ 
+        type: "Invoice",
+        displayNumber: newDisplayNumber
+      })
+      .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
     return redirect(`/dashboard/invoices/${invoiceId}`);
   }
   if (_action === "edit") {
     await db.transaction(async (tx) => {
-      const [invoice] = await tx.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+      const [invoice] = await tx
+        .select()
+        .from(invoices)
+        .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
 
       // Fetch the existing transaction to compare amounts
       const [existingTransaction] = await tx
@@ -85,7 +99,10 @@ export const action = async ({ request, params }: ActionArgs) => {
   }
 
   if (_action === "update") {
-    await db.update(invoices).set({ workStatus }).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+    await db
+      .update(invoices)
+      .set({ workStatus })
+      .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
     return json({ success: "workstatusupdate" });
   }
 
@@ -93,7 +110,10 @@ export const action = async ({ request, params }: ActionArgs) => {
     if (transactionamount > 0) {
       const date = transactiondate ? new Date(transactiondate) : undefined;
       await db.transaction(async (tx) => {
-        const [invoice] = await tx.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+        const [invoice] = await tx
+          .select()
+          .from(invoices)
+          .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
         if (transactionamount > invoice.amountDue) {
           throw new Error("Transaction amount cannot be greated than amount due");
         }
@@ -107,7 +127,10 @@ export const action = async ({ request, params }: ActionArgs) => {
         });
         const amountDue = invoice.amountDue - transactionamount;
         const status = amountDue === 0 ? "FullyPaid" : "PartialPaid";
-        await tx.update(invoices).set({ status, amountDue }).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+        await tx
+          .update(invoices)
+          .set({ status, amountDue })
+          .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
       });
       return json({ success: true });
     }
@@ -119,13 +142,25 @@ export async function loader({ request, params }: LoaderArgs) {
   if (!user) throw redirect("/login");
   const { id } = params;
   const invoiceId = Number(id);
-  const [invoice] = await db.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
+  const [invoice] = await db
+    .select()
+    .from(invoices)
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
   if (!invoice) {
     throw new Response("Quotation not found", { status: 404 });
   }
-  const [customer] = await db.select().from(customers).where(and(eq(customers.id, invoice.customerId), eq(customers.shopId, user.shopId!)));
-  const items = await db.select().from(itemsSchema).where(and(eq(itemsSchema.invoiceId, invoiceId), eq(itemsSchema.shopId, user.shopId!)));
-  const transactions = await db.select().from(transactionsSchema).where(and(eq(transactionsSchema.invoiceId, invoiceId), eq(transactionsSchema.shopId, user.shopId!)));
+  const [customer] = await db
+    .select()
+    .from(customers)
+    .where(and(eq(customers.id, invoice.customerId), eq(customers.shopId, user.shopId!)));
+  const items = await db
+    .select()
+    .from(itemsSchema)
+    .where(and(eq(itemsSchema.invoiceId, invoiceId), eq(itemsSchema.shopId, user.shopId!)));
+  const transactions = await db
+    .select()
+    .from(transactionsSchema)
+    .where(and(eq(transactionsSchema.invoiceId, invoiceId), eq(transactionsSchema.shopId, user.shopId!)));
   return json({ invoice, customer, items, transactions });
 }
 
@@ -140,14 +175,14 @@ export default function QuotationRoute() {
   const editModalHideBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const handleEditTransaction = (transaction: Transaction) => {
-    // Directly set the transaction 
+    // Directly set the transaction
     setEditingTransaction(transaction);
   };
 
   const handleModalClose = () => {
     // Clear the editing transaction state when modal is closed
     setEditingTransaction(null);
-    
+
     // Programmatically close the modal
     editModalHideBtnRef.current?.click();
   };
@@ -156,7 +191,7 @@ export default function QuotationRoute() {
     if (actionData?.success) {
       // Reset editing transaction state
       setEditingTransaction(null);
-      
+
       // Close both modals
       modalHideBtnRef.current?.click();
       editModalHideBtnRef.current?.click();
@@ -282,13 +317,15 @@ export default function QuotationRoute() {
           content={() => componentRef.current}
         />
         <Form method="post">
-          <button 
+          <button
             type="button"
             onClick={() => {
-              const shouldConvert = confirm("Are you sure you want to convert this quotation to an invoice? This action cannot be undone.");
+              const shouldConvert = confirm(
+                "Are you sure you want to convert this quotation to an invoice? This action cannot be undone."
+              );
               if (shouldConvert) {
-                const form = document.createElement('form');
-                form.method = 'post';
+                const form = document.createElement("form");
+                form.method = "post";
                 form.innerHTML = '<input type="hidden" name="_action" value="convert">';
                 document.body.appendChild(form);
                 form.submit();
@@ -709,10 +746,11 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           <p className="text-lg font-bold">Customer Details:</p>
           <p className="text-md italic">{customer.name}</p>
           <p className="text-md italic">{customer.phone}</p>
+          {customer.phone2 && <p className="text-md italic">{customer.phone2}</p>}
         </div>
         <div className="">
           <p className="text-lg font-bold">
-            Invoice#: <span className="font-normal">{invoice.id}</span>
+            Quotation#: <span className="font-normal">{getDisplayNumber(invoice)}</span>
           </p>
           <p className="text-lg font-bold">
             Date: <span className="font-normal">{formatDate(new Date(invoice.createdAt!).toDateString())}</span>
@@ -762,77 +800,18 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
               </tr>
             );
           })}
-          <div className="w-full flex justify-end">
-            <div className="border-b-2 border-l-2 border-r-2 border-stone-950 w-[18rem] flex flex-col">
-              <div className="mt-2 mb-2">
-                <span className="flex justify-between font-bold mb-2 text-stone-950 ">
-                  <div className="flex justify-end w-2/3">
-                    <p>Sub Total:</p>
-                  </div>
-                  <div className="flex justify-end w-1/3 px-2">
-                    <p className="">{invoice.totalAmount + totalDiscount}</p>
-                  </div>
-                </span>
-                {totalDiscount > 0 ? (
-                  <span className="flex justify-between font-bold mb-2">
-                    <div className="flex justify-end w-2/3">
-                      <p>Discount:</p>
-                    </div>
-                    <div className="flex justify-end w-1/3 px-2">
-                      <p className="">{totalDiscount}</p>
-                    </div>
-                  </span>
-                ) : (
-                  ""
-                )}
-                <span className="flex p-2 justify-between font-bold mb-2 bg-[#fdca01] print:bg-stone-950 print:text-white">
-                  <div className="flex justify-end w-2/3">
-                    <p>Total Payment:</p>
-                  </div>
-                  <div className="flex justify-end w-1/3">
-                    <p className="">{invoice.totalAmount}</p>
-                  </div>
-                </span>
-                <span className="flex justify-between font-bold mb-2">
-                  <div className="flex justify-end w-2/3">
-                    <p>Advance Payment:</p>
-                  </div>
-                  <div className="flex justify-end w-1/3 px-2">
-                    <p className="">
-                      {transactions.reduce((acc, obj) => {
-                        return acc + obj.amount;
-                      }, 0)}
-                    </p>
-                  </div>
-                </span>
-                <span
-                  className={`flex justify-between text-left font-semibold md:text-lg print:text-lg border-stone-950 text-stone-950`}
-                >
-                  <div className="flex justify-end w-2/3 text-base font-bold mb-2">
-                    <p>{invoice.amountDue! > 0 ? "Remaining Payment:" : "FULLY PAID ✅"}</p>
-                  </div>
-                  <div className="flex justify-end w-1/3 px-2">
-                    <p className={`font-semibold text-base border-stone-950`}>
-                      {invoice.amountDue! > 0 ? invoice.amountDue! : ""}
-                    </p>
-                  </div>
-                </span>
-              </div>
-            </div>
-          </div>
         </table>
       </div>
       <div className="px-4 mb-4">
-        <p className="font-bold text-xl">Thank you for being our valuable customer 😊</p>
+        <p className="font-bold text-xl mt-16">Thank you for your interest 😊</p>
       </div>
       <div className="flex flex-col gap-8 md:flex-row print:flex-row justify-between px-4 mb-4">
         <div>
           <p className="font-bold text-md">TERMS & CONDITIONS</p>
           <ol className="list-decimal list-inside text-sm">
-            <li>Any technical glitches may delay the work</li>
-            <li>Advance will not be refunded in case of order cancellation</li>
-            <li>Please pick your order within 15-Days of order placement</li>
-            <li>We won't be responsible for any loss after 15 days</li>
+            <li>Quotation is valid for 7 days from the date of issue</li>
+            <li>Prices are subject to change without prior notice</li>
+            <li> Final pricing will be confirmed upon order placement</li>
           </ol>
         </div>
       </div>
@@ -842,7 +821,7 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           <span className="text-md font-normal">www.luckyarts.org</span>
         </p>
       </div>
-      <div className="flex flex-col md:flex-row print:flex-row justify-between items-center px-4 mb-4">
+      <div className="flex flex-col md:flex-row print:flex-row justify-between items-center px-4 mb-4 mt-8">
         <div className="flex gap-1 text-sm">
           <span className="flex items-center gap-1">
             <FaGlobe /> www.luckyarts.org
@@ -858,7 +837,7 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
             @luckyarts.pk
           </span>
         </div>
-        <div className="flex flex-col gap-1 items-center">
+        <div className="flex flex-col gap-1 items-center mt-4">
           <span className="font-bold">_________________________________</span>
           <span>Authorized Signature</span>
         </div>

@@ -5,12 +5,14 @@ import { ActionArgs, json, redirect } from "@remix-run/node";
 import { db } from "~/utils/db.server";
 import { customers, invoices, items as itemsSchema } from "db/schema";
 import { getUser } from "~/utils/session.server";
+import { getNextDisplayNumber } from "~/utils/invoices.server";
 
 // Zod schema for quotation form validation
 export const QuotationFormSchema = z.object({
   customer: z.object({
     name: z.string().min(1, { message: "Customer name is required" }),
     phone: z.string().min(1, { message: "Customer phone is required" }),
+    phone2: z.string().optional(),
   }),
   items: z
     .array(
@@ -36,9 +38,11 @@ export const action = async ({ request }: ActionArgs) => {
   const itemDiscounts = formData.getAll("itemDiscountQuotation");
   const itemQuantities = formData.getAll("itemQuantityQuotation");
   const itemDescriptions = formData.getAll("itemDescriptionQuotation");
+  const phone2Value = formData.get("customerPhone2Quotation") as string;
   const customer = {
     name: formData.get("customerNameQuotation") as string,
     phone: formData.get("customerPhoneQuotation") as string,
+    phone2: phone2Value && phone2Value.trim() ? phone2Value.trim() : undefined,
   };
   const items: { name: string; price: number; discount: number; quantity: number; description: string }[] = [];
   for (let i = 0; i < itemNames.length; i++) {
@@ -60,6 +64,10 @@ export const action = async ({ request }: ActionArgs) => {
   const invoiceId: number = await db.transaction(async (tx) => {
     let res = await tx.insert(customers).values({ ...customer, shopId: user.shopId! });
     const customerId = Number(res.lastInsertRowid);
+    
+    // Generate the next display number for this shop and quotation type
+    const displayNumber = await getNextDisplayNumber(user.shopId!, "Quotation");
+    
     res = await tx.insert(invoices).values({
       userId,
       customerId,
@@ -67,6 +75,7 @@ export const action = async ({ request }: ActionArgs) => {
       amountDue: totalAmount,
       type: "Quotation",
       shopId: user.shopId!,
+      displayNumber,
     });
     const invoiceId = Number(res.lastInsertRowid);
     for (const item of items) {
@@ -232,6 +241,15 @@ export default function NewQuotationRoute() {
               type="text"
               placeholder="Customer phone"
               required
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+            />
+          </p>
+          <p className="w-full px-4 sm:pr-0">
+            <label className="block mb-2 text-sm font-medium text-gray-900">Phone 2 (Optional)</label>
+            <input
+              name="customerPhone2Quotation"
+              type="text"
+              placeholder="Second phone number (optional)"
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
             />
           </p>

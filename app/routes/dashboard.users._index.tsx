@@ -19,7 +19,10 @@ export async function loader({ request }: LoaderArgs) {
   const page = Number(url.searchParams.get("page") || "1");
   const searchQuery = url.searchParams.get("q") || "";
   
-  let where = like(users.email, `%${searchQuery}%`);
+  let where = and(
+    like(users.email, `%${searchQuery}%`),
+    sql`${users.role} != 'SuperAdmin'`
+  );
   
   let query = db
     .select()
@@ -49,12 +52,6 @@ export async function action({ request }: ActionArgs) {
   if (!user || user.role !== "SuperAdmin") throw redirect("/dashboard");
   const form = await request.formData();
   const action = form.get("action") as string;
-  
-  if (action === "delete") {
-    const id = Number(form.get("id"));
-    await db.delete(users).where(eq(users.id, id));
-    return redirect("/dashboard/users");
-  }
   
   if (action === "create") {
     // Create new user
@@ -350,17 +347,6 @@ export default function UsersIndex() {
                               className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg text-gray-900 border border-gray-900 hover:bg-[#f3c41a] focus:ring-2 focus:ring-[#f3c41a]"
                             >
                               Edit
-                            </button>
-                            <button
-                              onClick={() => {
-                                let shouldDelete = confirm("Do you want to delete this user?");
-                                if (shouldDelete) {
-                                  submit({ id: user.id, action: "delete" }, { method: "POST" });
-                                }
-                              }}
-                              className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg border-gray-900 border hover:bg-red-400 focus:ring-2 focus:ring-[#f3c41a]"
-                            >
-                              Delete
                             </button>
                           </td>
                         </tr>

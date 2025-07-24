@@ -1,9 +1,9 @@
 import type { LoaderArgs, ActionArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, Link, useLoaderData, useNavigation, useSearchParams, useSubmit } from "@remix-run/react";
-import { like, eq, sql, desc } from "drizzle-orm";
+import { like, eq, sql, desc, and } from "drizzle-orm";
 import { db } from "~/utils/db.server";
-import { shops } from "db/schema";
+import { shops, users, customers, invoices, items, transactions } from "db/schema";
 import { getUser } from "~/utils/session.server";
 import { useRef, useState } from "react";
 
@@ -18,7 +18,10 @@ export async function loader({ request }: LoaderArgs) {
   const page = Number(url.searchParams.get("page") || "1");
   const searchQuery = url.searchParams.get("q") || "";
   
-  let where = like(shops.name, `%${searchQuery}%`);
+  let where = and(
+    like(shops.name, `%${searchQuery}%`),
+    sql`${shops.name} != 'Main Shop'`
+  );
   
   let query = db
     .select()
@@ -47,7 +50,26 @@ export async function action({ request }: ActionArgs) {
   
   if (action === "delete") {
     const id = Number(form.get("id"));
+    
+    // Delete related records in the correct order to avoid foreign key constraint violations
+    // 1. Delete transactions (references invoices and users)
+    await db.delete(transactions).where(eq(transactions.shopId, id));
+    
+    // 2. Delete items (references invoices)
+    await db.delete(items).where(eq(items.shopId, id));
+    
+    // 3. Delete invoices (references customers and users)
+    await db.delete(invoices).where(eq(invoices.shopId, id));
+    
+    // 4. Delete customers (references shops)
+    await db.delete(customers).where(eq(customers.shopId, id));
+    
+    // 5. Delete users associated with this shop
+    await db.delete(users).where(eq(users.shopId, id));
+    
+    // 6. Finally delete the shop
     await db.delete(shops).where(eq(shops.id, id));
+    
     return redirect("/dashboard/shops");
   }
   
@@ -315,7 +337,7 @@ export default function ShopsIndex() {
                             </button>
                             <button
                               onClick={() => {
-                                let shouldDelete = confirm("Do you want to delete this shop?");
+                                let shouldDelete = confirm("Do you want to delete this shop? This will delete all related data.");
                                 if (shouldDelete) {
                                   submit({ id: shop.id, action: "delete" }, { method: "POST" });
                                 }
