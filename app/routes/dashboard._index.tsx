@@ -19,24 +19,24 @@ export async function loader({ request }: LoaderArgs) {
     result = await db
       .select()
       .from(invoices)
-      .where(and(eq(invoices.shopId, user.shopId!), between(invoices.createdAt, fromDate, toDate)));
+      .where(and(eq(invoices.shopId, user.shopId!), eq(invoices.type, "Invoice"), between(invoices.createdAt, fromDate, toDate)));
   } else if (from) {
     const fromDate = new Date(from);
     result = await db
       .select()
       .from(invoices)
-      .where(and(eq(invoices.shopId, user.shopId!), gte(invoices.createdAt, fromDate)));
+      .where(and(eq(invoices.shopId, user.shopId!), eq(invoices.type, "Invoice"), gte(invoices.createdAt, fromDate)));
   } else if (to) {
     const toDate = new Date(to);
     result = await db
       .select()
       .from(invoices)
-      .where(and(eq(invoices.shopId, user.shopId!), lte(invoices.createdAt, toDate)));
+      .where(and(eq(invoices.shopId, user.shopId!), eq(invoices.type, "Invoice"), lte(invoices.createdAt, toDate)));
   } else {
     result = await db
       .select()
       .from(invoices)
-      .where(eq(invoices.shopId, user.shopId!));
+      .where(and(eq(invoices.shopId, user.shopId!), eq(invoices.type, "Invoice")));
   }
   const transactions = await db
     .select()
