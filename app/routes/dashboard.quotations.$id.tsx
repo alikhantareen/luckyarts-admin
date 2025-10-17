@@ -41,12 +41,12 @@ export const action = async ({ request, params }: ActionArgs) => {
   if (_action === "convert") {
     // Generate a new display number for the invoice
     const newDisplayNumber = await getNextDisplayNumber(user.shopId!, "Invoice");
-    
+
     await db
       .update(invoices)
-      .set({ 
+      .set({
         type: "Invoice",
-        displayNumber: newDisplayNumber
+        displayNumber: newDisplayNumber,
       })
       .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
     return redirect(`/dashboard/invoices/${invoiceId}`);
@@ -729,15 +729,14 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           <p className="text-xs font-semibold mb-1 flex items-center gap-1">
             <FaWhatsapp /> 0306-6667200
           </p>
-          <p className="text-xs font-semibold flex items-center gap-1">
-            <SiGmail />
-            lucky_arts72@gmail.com
+          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
+            <FaLocationDot /> Shop # 1: Abdali Road Near Chowk Fawara, Multan
           </p>
-          <p className="text-xs font-semibold flex items-center gap-1">
-            <FaLocationDot /> Abdali road near chowk fawara, Multan
+          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
+            <FaLocationDot /> Shop # 2: Model Town Road Near Wapda Town Phase 1, Multan
           </p>
         </div>
-        <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute top-[112px] left-[145px] print:left-[144px] print:text-white">
+        <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute top-[120px] left-[145px] print:left-[144px] print:text-white">
           THE NAME OF QUALITY
         </p>
       </div>
@@ -815,29 +814,15 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           </ol>
         </div>
       </div>
-      <div className="px-4 mb-4">
-        <p className="font-bold text-lg flex flex-col">
+      <div className="flex flex-row justify-between items-center px-4 mb-4 gap-2 flex-wrap">
+        <p className="font-bold text-lg flex flex-col gap-1">
           For online shopping, please visit our store at
-          <span className="text-md font-normal">www.luckyarts.org</span>
+          <span className="text-md font-normal inline-flex items-center gap-2">
+            <FaGlobe className="inline-block" />
+            www.luckyarts.org
+          </span>
         </p>
-      </div>
-      <div className="flex flex-col md:flex-row print:flex-row justify-between items-center px-4 mb-4 mt-8">
-        <div className="flex gap-1 text-sm">
-          <span className="flex items-center gap-1">
-            <FaGlobe /> www.luckyarts.org
-          </span>
-          <span className="flex items-center gap-1">
-            <FaFacebook /> @luckyarts.pk
-          </span>
-          <span className="flex items-center gap-1">
-            <FaInstagram /> @luckyarts.pk
-          </span>
-          <span className="flex items-center gap-1">
-            <FaYoutube />
-            @luckyarts.pk
-          </span>
-        </div>
-        <div className="flex flex-col gap-1 items-center mt-4">
+        <div className="flex flex-col gap-1 items-center mt-3 md:mt-0 print:mt-0">
           <span className="font-bold">_________________________________</span>
           <span>Authorized Signature</span>
         </div>

@@ -12,7 +12,7 @@ async function seedUser() {
     console.log("Seeding a user into db...");
     const email = "admin@luckyarts.co";
     const password = bcrypt.hashSync("lucky_arts72");
-    await db.insert(schema.users).values({ email, password });
+    await db.insert(schema.users).values({ email, password, role: "SuperAdmin", shopId: 1 });
   }
 }
 seedUser();

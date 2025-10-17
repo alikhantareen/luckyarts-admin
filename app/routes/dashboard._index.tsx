@@ -1,5 +1,6 @@
 import { LoaderArgs, json, redirect } from "@remix-run/node";
 import { Form, NavLink, useLoaderData } from "@remix-run/react";
+import { useState } from "react";
 import { invoices, transactions as transactionsSchema, shops } from "db/schema";
 import { between, gte, lte, desc, eq, and } from "drizzle-orm";
 import { db } from "~/utils/db.server";
@@ -56,6 +57,9 @@ export async function loader({ request }: LoaderArgs) {
 
 export default function Index() {
   const { invoice, transactions, shop } = useLoaderData<typeof loader>();
+  const [showUnpaid, setShowUnpaid] = useState(false);
+  const [showPartial, setShowPartial] = useState(false);
+  const [showPaid, setShowPaid] = useState(false);
   
   function invoicesCounter(condition: string, invoice: Array<any>): any {
     let accumulatedValue = invoice.reduce((accum, current) => {
@@ -194,9 +198,31 @@ export default function Index() {
                   <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                     {invoicesCounter("unpaid", invoice)}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                    Amount: <span className="font-semibold text-red-600 dark:text-red-400">Rs. {invoicesPaymentCalculator("unpaid", invoice)}</span>
-                  </p>
+                  <div
+                    className="flex items-center justify-between text-gray-600 dark:text-gray-300 text-sm mb-4 cursor-pointer select-none rounded-lg px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    onClick={() => setShowUnpaid((s) => !s)}
+                    role="button"
+                    aria-pressed={showUnpaid}
+                  >
+                    <span>
+                      Amount: {" "}
+                      <span className={`font-semibold text-red-600 dark:text-red-400 ${showUnpaid ? "blur-0" : "blur-sm"}`}>
+                        Rs. {invoicesPaymentCalculator("unpaid", invoice)}
+                      </span>
+                    </span>
+                    <span className="ml-3 text-gray-500">
+                      {showUnpaid ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.642-4.442m3.066-1.96A9.957 9.957 0 0112 5c4.477 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.043 5.197M15 12a3 3 0 00-3-3m0 0a3 3 0 013 3m-3 0a3 3 0 01-3 3m9.192 4.192L4.808 4.808" />
+                        </svg>
+                      )}
+                    </span>
+                  </div>
                   <NavLink
                     to="invoices?status=Unpaid"
                     className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
@@ -224,9 +250,31 @@ export default function Index() {
                   <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                     {invoicesCounter("partialpaid", invoice)}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                    Amount: <span className="font-semibold text-[#7e691e]">Rs. {invoicesPaymentCalculator("partialpaid", invoice)}</span>
-                  </p>
+                  <div
+                    className="flex items-center justify-between text-gray-600 dark:text-gray-300 text-sm mb-4 cursor-pointer select-none rounded-lg px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    onClick={() => setShowPartial((s) => !s)}
+                    role="button"
+                    aria-pressed={showPartial}
+                  >
+                    <span>
+                      Amount: {" "}
+                      <span className={`font-semibold text-[#7e691e] ${showPartial ? "blur-0" : "blur-sm"}`}>
+                        Rs. {invoicesPaymentCalculator("partialpaid", invoice)}
+                      </span>
+                    </span>
+                    <span className="ml-3 text-gray-500">
+                      {showPartial ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.642-4.442m3.066-1.96A9.957 9.957 0 0112 5c4.477 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.043 5.197M15 12a3 3 0 00-3-3m0 0a3 3 0 013 3m-3 0a3 3 0 01-3 3m9.192 4.192L4.808 4.808" />
+                        </svg>
+                      )}
+                    </span>
+                  </div>
                   <NavLink
                     to="invoices?status=PartialPaid"
                     className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-[#f3c41a] hover:bg-[#e6b800] rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"
@@ -254,9 +302,31 @@ export default function Index() {
                   <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                     {invoicesCounter("fullypaid", invoice)}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                    Amount: <span className="font-semibold text-green-600 dark:text-green-400">Rs. {fullyPaidAmount}</span>
-                  </p>
+                  <div
+                    className="flex items-center justify-between text-gray-600 dark:text-gray-300 text-sm mb-4 cursor-pointer select-none rounded-lg px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    onClick={() => setShowPaid((s) => !s)}
+                    role="button"
+                    aria-pressed={showPaid}
+                  >
+                    <span>
+                      Amount: {" "}
+                      <span className={`font-semibold text-green-600 dark:text-green-400 ${showPaid ? "blur-0" : "blur-sm"}`}>
+                        Rs. {fullyPaidAmount}
+                      </span>
+                    </span>
+                    <span className="ml-3 text-gray-500">
+                      {showPaid ? (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.477 0-8.268-2.943-9.542-7a9.956 9.956 0 012.642-4.442m3.066-1.96A9.957 9.957 0 0112 5c4.477 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.043 5.197M15 12a3 3 0 00-3-3m0 0a3 3 0 013 3m-3 0a3 3 0 01-3 3m9.192 4.192L4.808 4.808" />
+                        </svg>
+                      )}
+                    </span>
+                  </div>
                   <NavLink
                     to="invoices?status=FullyPaid"
                     className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-xl transition-all duration-200 shadow-md hover:shadow-lg"

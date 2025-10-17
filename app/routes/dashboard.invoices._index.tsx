@@ -68,12 +68,12 @@ export async function loader({ request }: LoaderArgs) {
     .innerJoin(customers, eq(invoices.customerId, customers.id))
     .where(where);
 
-  return json({ invoices: kk, total });
+  return json({ invoices: kk, total, canDelete: user.role === "SuperAdmin" });
 }
 
 export default function InvoicesIndexRoute() {
   // @ts-ignore: https://github.com/remix-run/remix/issues/3931
-  const { invoices, total } = useLoaderData<typeof loader>();
+  const { invoices, total, canDelete } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const submit = useSubmit();
   const transition = useNavigation();
@@ -563,17 +563,19 @@ export default function InvoicesIndexRoute() {
                                 Edit
                               </button>
                             </Link>
-                            <button
-                              onClick={() => {
-                                let shouldDelete = confirm("Do you want to delete the invoice?");
-                                if (shouldDelete) {
-                                  submit({ id: invoice.id }, { method: "DELETE" });
-                                }
-                              }}
-                              className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg border-gray-900 border hover:bg-red-400 focus:ring-2 focus:ring-[#f3c41a]"
-                            >
-                              Delete
-                            </button>
+                            {canDelete && (
+                              <button
+                                onClick={() => {
+                                  let shouldDelete = confirm("Do you want to delete the invoice?");
+                                  if (shouldDelete) {
+                                    submit({ id: invoice.id }, { method: "DELETE" });
+                                  }
+                                }}
+                                className="inline-flex items-center px-3 py-2 text-sm font-medium text-center rounded-lg border-gray-900 border hover:bg-red-400 focus:ring-2 focus:ring-[#f3c41a]"
+                              >
+                                Delete
+                              </button>
+                            )}
                           </td>
                         </tr>
                       ))}
