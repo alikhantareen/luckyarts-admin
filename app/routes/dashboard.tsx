@@ -61,7 +61,11 @@ export default function App() {
               </button>
               <Link to="/" className="flex ml-2 md:mr-24 group">
                 <div className="relative">
-                  <img src={logo} className="h-10 mr-3 rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-200" alt="Lucky Arts Logo" />
+                  <img
+                    src={logo}
+                    className="h-10 mr-3 rounded-xl shadow-lg group-hover:scale-105 transition-transform duration-200"
+                    alt="Lucky Arts Logo"
+                  />
                   <div className="absolute inset-0 rounded-xl bg-[#f3c41a]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                 </div>
                 <span className="self-center font-lemon text-xl font-semibold md:text-2xl whitespace-nowrap text-gray-900 dark:text-white group-hover:text-[#f3c41a] transition-all duration-200">
@@ -115,7 +119,7 @@ export default function App() {
       <aside
         id="logo-sidebar"
         className={`fixed top-0 left-0 z-40 w-64 h-screen pt-20 transition-transform backdrop-blur-xl bg-white/90 border-r border-gray-200/50 md:translate-x-0 dark:bg-gray-900/90 dark:border-gray-700/50 shadow-2xl ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-label="Sidebar"
       >
@@ -234,6 +238,24 @@ export default function App() {
                 </li>
               </>
             )}
+            <li>
+              <Link
+                to="/dashboard/expenses"
+                className="flex items-center p-3 text-base font-medium text-gray-900 rounded-2xl dark:text-white hover:bg-[#f3c41a]/10 dark:hover:bg-[#f3c41a]/20 transition-all duration-200 group border border-transparent hover:border-[#f3c41a]/20"
+              >
+                <div className="p-2 rounded-xl bg-[#f3c41a] text-gray-900 shadow-lg group-hover:scale-110 transition-transform duration-200">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582z" />
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.055.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.414 1.059 2.353 1.224V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.51-1.31c-.562-.649-1.414-1.059-2.353-1.224V5zm0 6.151v1.698c.22-.071.412-.164.567-.267.364-.243.433-.468.433-.582 0-.114-.07-.34-.433-.582A2.305 2.305 0 0011 11.151z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <span className="flex-1 ml-4 font-semibold">Expenses</span>
+              </Link>
+            </li>
           </ul>
         </div>
       </aside>

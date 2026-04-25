@@ -100,11 +100,28 @@ export const transactions = sqliteTable("transactions", {
     .default(sql`(STRFTIME('%s', 'now'))`),
 });
 
+export const expense = sqliteTable("expense", {
+  id: integer("id").primaryKey(),
+  shopId: integer("shop_id")
+    .references(() => shops.id)
+    .notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
+  displayNumber: integer("display_number"),
+  amount: integer("amount").notNull(),
+  description: text("description").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(STRFTIME('%s', 'now'))`),
+});
+
 export type InvoiceStatus = typeof invoices.$inferSelect.status;
 export type InvoiceWorkStatus = typeof invoices.$inferSelect.workStatus;
 export type Invoice = typeof invoices.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type Item = typeof items.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
+export type Expense = typeof expense.$inferSelect;
 export type Shop = typeof shops.$inferSelect;
 export type User = typeof users.$inferSelect;

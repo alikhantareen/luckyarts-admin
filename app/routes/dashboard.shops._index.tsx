@@ -3,7 +3,7 @@ import { json, redirect } from "@remix-run/node";
 import { Form, Link, useLoaderData, useNavigation, useSearchParams, useSubmit } from "@remix-run/react";
 import { like, eq, sql, desc, and } from "drizzle-orm";
 import { db } from "~/utils/db.server";
-import { shops, users, customers, invoices, items, transactions } from "db/schema";
+import { shops, users, customers, invoices, items, transactions, expense } from "db/schema";
 import { getUser } from "~/utils/session.server";
 import { useRef, useState } from "react";
 
@@ -64,10 +64,13 @@ export async function action({ request }: ActionArgs) {
     // 4. Delete customers (references shops)
     await db.delete(customers).where(eq(customers.shopId, id));
     
-    // 5. Delete users associated with this shop
+    // 5. Delete expenses (references shops and users)
+    await db.delete(expense).where(eq(expense.shopId, id));
+    
+    // 6. Delete users associated with this shop
     await db.delete(users).where(eq(users.shopId, id));
     
-    // 6. Finally delete the shop
+    // 7. Finally delete the shop
     await db.delete(shops).where(eq(shops.id, id));
     
     return redirect("/dashboard/shops");
