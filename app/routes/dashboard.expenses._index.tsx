@@ -260,7 +260,7 @@ export default function ExpensesIndex() {
                         From
                       </label>
                       <input
-                        className="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-2xl focus:ring-2 focus:ring-[#f3c41a]/50 focus:border-[#f3c41a] block p-3 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                        className="w-full md:w-auto bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-2xl focus:ring-2 focus:ring-[#f3c41a]/50 focus:border-[#f3c41a] block p-3 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                         type="date"
                         name="from"
                         id="from"
@@ -272,7 +272,7 @@ export default function ExpensesIndex() {
                         To
                       </label>
                       <input
-                        className="bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-2xl focus:ring-2 focus:ring-[#f3c41a]/50 focus:border-[#f3c41a] block p-3 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                        className="w-full md:w-auto bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-2xl focus:ring-2 focus:ring-[#f3c41a]/50 focus:border-[#f3c41a] block p-3 transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-600"
                         type="date"
                         name="to"
                         id="to"
