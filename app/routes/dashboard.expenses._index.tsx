@@ -1,13 +1,19 @@
 import type { ActionArgs, LoaderArgs } from "@remix-run/node";
 import { json, redirect } from "@remix-run/node";
 import { Form, Link, useLoaderData, useNavigation, useSearchParams, useSubmit } from "@remix-run/react";
-import { and, between, desc, eq, gte, lte, sql } from "drizzle-orm";
-import { useState } from "react";
-import { expense } from "db/schema";
+import { and, asc, between, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { useMemo, useState } from "react";
+import { expense, expenseItems } from "db/schema";
 import { db } from "~/utils/db.server";
 import { getUser } from "~/utils/session.server";
 
 const PAGE_SIZE = 10;
+
+type ExpenseLineItem = {
+  id?: number;
+  amount: number | string;
+  description: string;
+};
 
 async function getNextExpenseDisplayNumber(shopId: number): Promise<number> {
   const result = await db
@@ -34,6 +40,30 @@ function getRedirectTo(form: FormData) {
     return redirectTo;
   }
   return "/dashboard/expenses";
+}
+
+function parseExpenseItems(form: FormData) {
+  const amounts = form.getAll("amount");
+  const descriptions = form.getAll("description");
+  const items = amounts.map((amountValue, index) => {
+    const amount = Number(amountValue);
+    const description = String(descriptions[index] || "").trim();
+
+    return {
+      amount,
+      description,
+      rowOrder: index,
+    };
+  });
+
+  if (
+    items.length === 0 ||
+    items.some((item) => !Number.isInteger(item.amount) || item.amount <= 0 || !item.description)
+  ) {
+    return null;
+  }
+
+  return items;
 }
 
 export async function loader({ request }: LoaderArgs) {
@@ -70,6 +100,36 @@ export async function loader({ request }: LoaderArgs) {
     .offset((page - 1) * PAGE_SIZE)
     .orderBy(desc(expense.createdAt));
 
+  const expenseIds = data.map((item) => item.id);
+  const itemRows = expenseIds.length
+    ? await db
+        .select()
+        .from(expenseItems)
+        .where(inArray(expenseItems.expenseId, expenseIds))
+        .orderBy(asc(expenseItems.rowOrder), asc(expenseItems.id))
+    : [];
+
+  const itemsByExpenseId = itemRows.reduce<Record<number, typeof itemRows>>((itemsById, item) => {
+    if (!itemsById[item.expenseId]) {
+      itemsById[item.expenseId] = [];
+    }
+    itemsById[item.expenseId].push(item);
+    return itemsById;
+  }, {});
+
+  const expenses = data.map((item) => ({
+    ...item,
+    items: itemsByExpenseId[item.id] || [
+      {
+        id: item.id,
+        expenseId: item.id,
+        amount: item.amount,
+        description: item.description,
+        rowOrder: 0,
+      },
+    ],
+  }));
+
   const [{ total }] = await db
     .select({ total: sql<number>`count(*)` })
     .from(expense)
@@ -80,7 +140,7 @@ export async function loader({ request }: LoaderArgs) {
     .from(expense)
     .where(where);
 
-  return json({ expenses: data, total, totalExpense });
+  return json({ expenses, total, totalExpense });
 }
 
 export async function action({ request }: ActionArgs) {
@@ -92,21 +152,37 @@ export async function action({ request }: ActionArgs) {
   const redirectTo = getRedirectTo(form);
 
   if (action === "create") {
-    const amount = Number(form.get("amount"));
-    const description = String(form.get("description") || "").trim();
+    const lineItems = parseExpenseItems(form);
 
-    if (!Number.isInteger(amount) || amount <= 0 || !description) {
+    if (!lineItems) {
       return redirect("/dashboard/expenses");
     }
 
+    const totalAmount = lineItems.reduce((total, item) => total + item.amount, 0);
+    const previewDescription = lineItems[0].description;
     const displayNumber = await getNextExpenseDisplayNumber(user.shopId!);
 
-    await db.insert(expense).values({
-      amount,
-      description,
-      userId: user.id,
-      shopId: user.shopId!,
-      displayNumber,
+    db.transaction((tx) => {
+      const newExpense = tx
+        .insert(expense)
+        .values({
+          amount: totalAmount,
+          description: previewDescription,
+          userId: user.id,
+          shopId: user.shopId!,
+          displayNumber,
+        })
+        .returning({ id: expense.id })
+        .get();
+
+      tx.insert(expenseItems).values(
+        lineItems.map((item) => ({
+          expenseId: newExpense.id,
+          amount: item.amount,
+          description: item.description,
+          rowOrder: item.rowOrder,
+        }))
+      ).run();
     });
 
     return redirect("/dashboard/expenses");
@@ -114,17 +190,42 @@ export async function action({ request }: ActionArgs) {
 
   if (action === "edit") {
     const id = Number(form.get("id"));
-    const amount = Number(form.get("amount"));
-    const description = String(form.get("description") || "").trim();
+    const lineItems = parseExpenseItems(form);
 
-    if (!Number.isFinite(id) || !Number.isInteger(amount) || amount <= 0 || !description) {
+    if (!Number.isInteger(id) || !lineItems) {
       return redirect(redirectTo);
     }
 
-    await db
-      .update(expense)
-      .set({ amount, description })
-      .where(and(eq(expense.id, id), eq(expense.shopId, user.shopId!)));
+    const existingExpense = await db
+      .select({ id: expense.id })
+      .from(expense)
+      .where(and(eq(expense.id, id), eq(expense.shopId, user.shopId!)))
+      .limit(1);
+
+    if (existingExpense.length === 0) {
+      return redirect(redirectTo);
+    }
+
+    const totalAmount = lineItems.reduce((total, item) => total + item.amount, 0);
+    const previewDescription = lineItems[0].description;
+
+    db.transaction((tx) => {
+      tx
+        .update(expense)
+        .set({ amount: totalAmount, description: previewDescription })
+        .where(and(eq(expense.id, id), eq(expense.shopId, user.shopId!)))
+        .run();
+
+      tx.delete(expenseItems).where(eq(expenseItems.expenseId, id)).run();
+      tx.insert(expenseItems).values(
+        lineItems.map((item) => ({
+          expenseId: id,
+          amount: item.amount,
+          description: item.description,
+          rowOrder: item.rowOrder,
+        }))
+      ).run();
+    });
 
     return redirect(redirectTo);
   }
@@ -132,10 +233,27 @@ export async function action({ request }: ActionArgs) {
   if (action === "delete") {
     const id = Number(form.get("id"));
 
-    if (Number.isFinite(id)) {
-      await db
-        .delete(expense)
-        .where(and(eq(expense.id, id), eq(expense.shopId, user.shopId!)));
+    if (Number.isInteger(id)) {
+      const existingExpense = await db
+        .select({ id: expense.id })
+        .from(expense)
+        .where(and(eq(expense.id, id), eq(expense.shopId, user.shopId!)))
+        .limit(1);
+
+      if (existingExpense.length === 0) {
+        return redirect(redirectTo);
+      }
+
+      db.transaction((tx) => {
+        tx
+          .delete(expenseItems)
+          .where(eq(expenseItems.expenseId, id))
+          .run();
+        tx
+          .delete(expense)
+          .where(and(eq(expense.id, id), eq(expense.shopId, user.shopId!)))
+          .run();
+      });
     }
 
     return redirect(redirectTo);
@@ -151,6 +269,13 @@ export default function ExpensesIndex() {
   const transition = useNavigation();
   const [modalMode, setModalMode] = useState<"create" | "view" | "edit">("create");
   const [selectedExpense, setSelectedExpense] = useState<any | null>(null);
+  const [expenseRows, setExpenseRows] = useState<ExpenseLineItem[]>([
+    { amount: "", description: "" },
+  ]);
+  const expenseRowsTotal = useMemo(
+    () => expenseRows.reduce((total, row) => total + (Number(row.amount) || 0), 0),
+    [expenseRows]
+  );
 
   const page = Number(searchParams.get("page") || "1");
   const from = searchParams.get("from") || "";
@@ -171,6 +296,17 @@ export default function ExpensesIndex() {
   function openModal(mode: "create" | "view" | "edit", item: any | null = null) {
     setModalMode(mode);
     setSelectedExpense(item);
+    if (mode === "edit" && item?.items?.length) {
+      setExpenseRows(
+        item.items.map((lineItem: any) => ({
+          id: lineItem.id,
+          amount: lineItem.amount,
+          description: lineItem.description,
+        }))
+      );
+    } else {
+      setExpenseRows([{ amount: "", description: "" }]);
+    }
     const modal = document.getElementById("expenseModal");
     if (modal) modal.classList.remove("hidden");
   }
@@ -180,6 +316,21 @@ export default function ExpensesIndex() {
     if (modal) modal.classList.add("hidden");
     setSelectedExpense(null);
     setModalMode("create");
+    setExpenseRows([{ amount: "", description: "" }]);
+  }
+
+  function addExpenseRow() {
+    setExpenseRows((rows) => [...rows, { amount: "", description: "" }]);
+  }
+
+  function removeExpenseRow(index: number) {
+    setExpenseRows((rows) => rows.filter((_, rowIndex) => rowIndex !== index));
+  }
+
+  function updateExpenseRow(index: number, field: keyof ExpenseLineItem, value: number | string) {
+    setExpenseRows((rows) =>
+      rows.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: value } : row))
+    );
   }
 
   return (
@@ -456,8 +607,8 @@ export default function ExpensesIndex() {
       </div>
 
       <div id="expenseModal" className="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[80vh] flex flex-col">
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">
               {modalMode === "view" ? "View Expense" : modalMode === "edit" ? "Edit Expense" : "Add Expense"}
             </h3>
@@ -469,30 +620,46 @@ export default function ExpensesIndex() {
           </div>
 
           {modalMode === "view" && selectedExpense ? (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ID</label>
-                <p className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900">#{getExpenseDisplayNumber(selectedExpense)}</p>
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="space-y-4 overflow-y-auto p-6">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ID</label>
+                    <p className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900">#{getExpenseDisplayNumber(selectedExpense)}</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <p className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900">
+                      {formatDate(selectedExpense.createdAt)}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount</label>
+                    <p className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900">
+                      Rs. {selectedExpense.amount}
+                    </p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <div className="grid grid-cols-13 gap-2 min-w-[475px] border-b border-gray-200 pb-2 text-sm font-medium text-gray-700">
+                    <span>Sr</span>
+                    <span className="col-span-7">Description</span>
+                    <span className="col-span-5 text-right">Amount (Rs.)</span>
+                  </div>
+                  <div className="max-h-96 overflow-y-auto">
+                    {(selectedExpense.items || []).map((lineItem: any, index: number) => (
+                      <div key={lineItem.id || index} className="grid grid-cols-13 gap-2 min-w-[475px] border-b border-gray-100 py-3">
+                        <p className="font-medium block px-1 w-full text-sm text-gray-900">
+                          {index + 1}
+                        </p>
+                        <p className="col-span-7 text-sm text-gray-900">{lineItem.description}</p>
+                        <p className="col-span-5 text-right text-sm font-medium text-gray-900">Rs. {lineItem.amount}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <p className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900">
-                  {formatDate(selectedExpense.createdAt)}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                <p className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900">
-                  Rs. {selectedExpense.amount}
-                </p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <p className="w-full px-3 py-2 border border-gray-300 rounded-md text-gray-900 whitespace-pre-wrap">
-                  {selectedExpense.description}
-                </p>
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex justify-end gap-3 border-t border-gray-200 p-6">
                 <button
                   type="button"
                   onClick={closeModal}
@@ -505,36 +672,90 @@ export default function ExpensesIndex() {
           ) : (
             <Form
               method="post"
-              className="space-y-4"
+              className="flex min-h-0 flex-1 flex-col"
               key={`${modalMode}-${selectedExpense?.id || "new"}`}
               onSubmit={closeModal}
             >
               <input type="hidden" name="action" value={modalMode === "edit" ? "edit" : "create"} />
               <input type="hidden" name="redirectTo" value={currentPath} />
               {modalMode === "edit" && selectedExpense && <input type="hidden" name="id" value={selectedExpense.id} />}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                <input
-                  name="amount"
-                  type="number"
-                  min="1"
-                  step="1"
-                  required
-                  defaultValue={selectedExpense?.amount || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f3c41a] focus:border-[#f3c41a]"
-                />
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
+                <div className="overflow-x-auto">
+                  <div className="grid grid-cols-13 gap-2 min-w-[475px] text-sm font-medium text-gray-900">
+                    <label>Sr</label>
+                    <label className="col-span-7">Description</label>
+                    <label className="col-span-4 text-right">Amount (Rs.)</label>
+                    <span aria-hidden="true"></span>
+                  </div>
+                  <div className="space-y-3">
+                    {expenseRows.map((row, index) => (
+                      <div key={`${modalMode}-${selectedExpense?.id || "new"}-${index}`} className="grid grid-cols-13 gap-x-2 gap-y-1 min-w-[475px] mt-3 pb-1">
+                        <p className="font-medium block py-2.5 px-1 w-full text-sm text-gray-900 bg-transparent border-0 border-gray-300 appearance-none focus:outline-none focus:ring-0 peer">
+                          {index + 1}
+                        </p>
+                        <input
+                          name="description"
+                          type="text"
+                          placeholder="Expense detail"
+                          required
+                          value={row.description}
+                          onChange={(event) => updateExpenseRow(index, "description", event.target.value)}
+                          className="col-span-7 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f3c41a]/50 focus:border-[#f3c41a] block w-full p-2.5"
+                        />
+                        <input
+                          name="amount"
+                          type="number"
+                          min="1"
+                          step="1"
+                          placeholder="Amount"
+                          required
+                          value={row.amount}
+                          onChange={(event) => updateExpenseRow(index, "amount", event.target.value)}
+                          className="text-right col-span-4 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-[#f3c41a]/50 focus:border-[#f3c41a] block w-full p-2.5"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeExpenseRow(index)}
+                          disabled={expenseRows.length === 1}
+                          className="text-gray-400 bg-transparent disabled:text-gray-400 hover:text-gray-900 rounded-lg text-sm items-center"
+                        >
+                          <svg
+                            aria-hidden="true"
+                            className="w-4 h-4"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            ></path>
+                          </svg>
+                          <span className="sr-only">Remove expense row</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-13 gap-2 min-w-[475px] mt-3 pt-3 border-t border-gray-200 items-center">
+                    <span className="col-span-8 text-right text-sm pr-1 font-bold block w-full text-gray-900">
+                      Total (Rs.)
+                    </span>
+                    <p className="col-span-4 text-right font-bold block py-2.5 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300">
+                      {expenseRowsTotal}
+                    </p>
+                    <span aria-hidden="true"></span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={addExpenseRow}
+                  className="font-medium rounded-lg text-xs px-3 py-2 text-slate-900 border border-slate-900 hover:bg-[#f7e5a4] focus:ring-2 focus:ring-slate-900"
+                >
+                  Add new row
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  name="description"
-                  required
-                  rows={4}
-                  defaultValue={selectedExpense?.description || ""}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#f3c41a] focus:border-[#f3c41a]"
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex justify-end gap-3 border-t border-gray-200 p-6">
                 <button
                   type="button"
                   onClick={closeModal}

@@ -116,6 +116,16 @@ export const expense = sqliteTable("expense", {
     .default(sql`(STRFTIME('%s', 'now'))`),
 });
 
+export const expenseItems = sqliteTable("expense_items", {
+  id: integer("id").primaryKey(),
+  expenseId: integer("expense_id")
+    .references(() => expense.id)
+    .notNull(),
+  amount: integer("amount").notNull(),
+  description: text("description").notNull(),
+  rowOrder: integer("row_order").notNull().default(0),
+});
+
 export type InvoiceStatus = typeof invoices.$inferSelect.status;
 export type InvoiceWorkStatus = typeof invoices.$inferSelect.workStatus;
 export type Invoice = typeof invoices.$inferSelect;
@@ -123,5 +133,6 @@ export type Customer = typeof customers.$inferSelect;
 export type Item = typeof items.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Expense = typeof expense.$inferSelect;
+export type ExpenseItem = typeof expenseItems.$inferSelect;
 export type Shop = typeof shops.$inferSelect;
 export type User = typeof users.$inferSelect;

@@ -57,6 +57,13 @@
       "when": 1777139400000,
       "tag": "0007_add_expense_display_number",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1777140000000,
+      "tag": "0008_add_expense_items",
+      "breakpoints": true
     }
   ]
 }
