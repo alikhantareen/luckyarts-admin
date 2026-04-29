@@ -475,13 +475,13 @@ export default function ExpensesIndex() {
                           ID
                         </th>
                         <th scope="col" className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400">
-                          Amount
+                          Date
                         </th>
                         <th scope="col" className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400">
                           Description
                         </th>
                         <th scope="col" className="p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400">
-                          Date
+                          Total Amount
                         </th>
                         <th scope="col" className="w-72 p-4 text-xs font-medium text-left text-white uppercase dark:text-gray-400">
                           Actions
@@ -505,7 +505,7 @@ export default function ExpensesIndex() {
                         >
                           <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">#{getExpenseDisplayNumber(item)}</td>
                           <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
-                            Rs. {item.amount}
+                            {formatDate(item.createdAt)}
                           </td>
                           <td className="p-4 text-base font-medium dark:text-white">
                             <span className="block max-w-[56rem] truncate" title={item.description}>
@@ -513,7 +513,7 @@ export default function ExpensesIndex() {
                             </span>
                           </td>
                           <td className="p-4 text-base font-medium whitespace-nowrap dark:text-white">
-                            {formatDate(item.createdAt)}
+                            Rs. {item.amount}
                           </td>
                           <td className="w-72 p-4 space-x-2 whitespace-nowrap">
                             <button
