@@ -6,6 +6,7 @@ import { db } from "~/utils/db.server";
 import { customers, invoices, items as itemsSchema, transactions } from "db/schema";
 import { requireUserId, getUser } from "~/utils/session.server";
 import { getNextDisplayNumber } from "~/utils/invoices.server";
+import { parseDeliveryDate } from "~/utils/invoices";
 
 export const InvoiceFormSchema = z.object({
   customer: z.object({
@@ -39,6 +40,7 @@ export const action = async ({ request }: ActionArgs) => {
   const itemDescriptions = formData.getAll("itemDescription");
   const amountPaid = Number(formData.get("amountPaid"));
   const phone2Value = formData.get("customerPhone2") as string;
+  const deliveryDate = parseDeliveryDate(formData.get("deliveryDate"));
   const customer = {
     name: formData.get("customerName") as string,
     phone: formData.get("customerPhone") as string,
@@ -89,7 +91,8 @@ export const action = async ({ request }: ActionArgs) => {
       totalAmount, 
       amountDue, 
       status,
-      displayNumber 
+      displayNumber,
+      deliveryDate,
     });
     const invoiceId = Number(res.lastInsertRowid);
     for (const item of items) {
@@ -229,6 +232,17 @@ export default function NewInvoiceRoute() {
               maxLength={11}
               minLength={11}
               placeholder="Type second phone number (optional)"
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+            />
+          </p>
+          <p className="w-full px-4 sm:pl-0">
+            <label htmlFor="deliveryDate" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Delivery Date &amp; Time (Optional)
+            </label>
+            <input
+              id="deliveryDate"
+              name="deliveryDate"
+              type="datetime-local"
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
             />
           </p>

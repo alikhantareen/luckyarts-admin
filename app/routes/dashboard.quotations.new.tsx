@@ -6,6 +6,7 @@ import { db } from "~/utils/db.server";
 import { customers, invoices, items as itemsSchema } from "db/schema";
 import { getUser } from "~/utils/session.server";
 import { getNextDisplayNumber } from "~/utils/invoices.server";
+import { parseDeliveryDate } from "~/utils/invoices";
 
 // Zod schema for quotation form validation
 export const QuotationFormSchema = z.object({
@@ -39,6 +40,7 @@ export const action = async ({ request }: ActionArgs) => {
   const itemQuantities = formData.getAll("itemQuantityQuotation");
   const itemDescriptions = formData.getAll("itemDescriptionQuotation");
   const phone2Value = formData.get("customerPhone2Quotation") as string;
+  const deliveryDate = parseDeliveryDate(formData.get("deliveryDateQuotation"));
   const customer = {
     name: formData.get("customerNameQuotation") as string,
     phone: formData.get("customerPhoneQuotation") as string,
@@ -76,6 +78,7 @@ export const action = async ({ request }: ActionArgs) => {
       type: "Quotation",
       shopId: user.shopId!,
       displayNumber,
+      deliveryDate,
     });
     const invoiceId = Number(res.lastInsertRowid);
     for (const item of items) {
@@ -250,6 +253,17 @@ export default function NewQuotationRoute() {
               name="customerPhone2Quotation"
               type="text"
               placeholder="Second phone number (optional)"
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
+            />
+          </p>
+          <p className="w-full px-4 sm:pl-0">
+            <label htmlFor="deliveryDateQuotation" className="block mb-2 text-sm font-medium text-gray-900">
+              Delivery Date &amp; Time (Optional)
+            </label>
+            <input
+              id="deliveryDateQuotation"
+              name="deliveryDateQuotation"
+              type="datetime-local"
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
             />
           </p>

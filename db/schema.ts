@@ -47,6 +47,8 @@ export const invoices = sqliteTable("invoices", {
     .default("Pending"),
   totalAmount: integer("total_amount").notNull(),
   amountDue: integer("amount_due").notNull(),
+  // Optional, stored as entered: "YYYY-MM-DDTHH:MM" in the shop's local time.
+  deliveryDate: text("delivery_date"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(STRFTIME('%s', 'now'))`),

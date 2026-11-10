@@ -6,6 +6,7 @@ import { db } from "~/utils/db.server";
 import { eq, and } from "drizzle-orm";
 import { customers, invoices, items as itemsSchema, transactions as transactionsSchema } from "db/schema";
 import { requireUserId, getUser } from "~/utils/session.server";
+import { parseDeliveryDate } from "~/utils/invoices";
 
 export const InvoiceEditFormSchema = z.object({
   customer: z.object({
@@ -42,6 +43,7 @@ export const action = async ({ request, params }: ActionArgs) => {
   const itemDescriptions = formData.getAll("itemDescriptionEdit");
   const amountPaid = Number(formData.get("amountPaidEdit"));
   const phone2Value = formData.get("customerPhone2Edit") as string;
+  const deliveryDate = parseDeliveryDate(formData.get("deliveryDateEdit"));
   const customer = {
     name: formData.get("customerNameEdit") as string,
     phone: formData.get("customerPhoneEdit") as string,
@@ -102,6 +104,7 @@ export const action = async ({ request, params }: ActionArgs) => {
         totalAmount,
         amountDue,
         status,
+        deliveryDate,
       })
       .where(and(eq(invoices.id, invoiceId), eq(invoices.shopId, user.shopId!)));
 
@@ -294,6 +297,18 @@ export default function EditInvoiceRoute() {
               maxLength={11}
               minLength={11}
               placeholder="Type second phone number (optional)"
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+            />
+          </p>
+          <p className="w-full px-4 sm:pl-0">
+            <label htmlFor="deliveryDateEdit" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Delivery Date &amp; Time (Optional)
+            </label>
+            <input
+              id="deliveryDateEdit"
+              name="deliveryDateEdit"
+              type="datetime-local"
+              defaultValue={invoice.deliveryDate ?? ""}
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
             />
           </p>

@@ -19,7 +19,7 @@ import {
   transactions as transactionsSchema,
 } from "db/schema";
 import { requireUserId, getUser } from "~/utils/session.server";
-import { getDisplayNumber } from "~/utils/invoices";
+import { getDisplayNumber, formatDeliveryDate } from "~/utils/invoices";
 import { getNextDisplayNumber } from "~/utils/invoices.server";
 import { FaFacebook, FaGlobe, FaInstagram, FaYoutube, FaWhatsapp, FaLocationDot } from "react-icons/fa6";
 import { SiGmail } from "react-icons/si";
@@ -666,6 +666,7 @@ type InvoiceComponentProps = {
 const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponentProps>((props, ref) => {
   const { invoice, customer, items, transactions } = props;
   const totalDiscount = items.map((i) => i.discount ?? 0).reduce((p, n) => p + n, 0);
+  const delivery = formatDeliveryDate(invoice.deliveryDate);
 
   function formatDate(inputDate: any) {
     const months: any = {
@@ -721,22 +722,19 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           </div>
         </div>
         <div className="mb-2 flex flex-col justify-center md:justify-end print:justify-end md:items-end print:items-end items-start mr-4">
-          <p className="text-xs font-semibold">Ashfaq Ahmad Khan Khakwani</p>
-          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
+          <p className="text-sm font-semibold">Ashfaq Ahmad Khan Khakwani</p>
+          <p className="text-sm font-semibold mb-1 flex items-center gap-1">
             <FaWhatsapp /> 0307-6667200
           </p>
-          <p className="text-xs font-semibold">Mudassir Khan Khakwani</p>
-          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
+          <p className="text-sm font-semibold">Mudassir Khan Khakwani</p>
+          <p className="text-sm font-semibold mb-1 flex items-center gap-1">
             <FaWhatsapp /> 0306-6667200
           </p>
-          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
+          <p className="text-sm font-semibold mb-1 flex items-center gap-1">
             <FaLocationDot /> Shop # 1: Abdali Road Near Chowk Fawara, Multan
           </p>
-          <p className="text-xs font-semibold mb-1 flex items-center gap-1">
-            <FaLocationDot /> Shop # 2: Model Town Road Near Wapda Town Phase 1, Multan
-          </p>
         </div>
-        <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute top-[120px] left-[145px] print:left-[144px] print:text-white">
+        <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute -bottom-4 left-[145px] print:left-[144px] print:text-white">
           THE NAME OF QUALITY
         </p>
       </div>
@@ -757,6 +755,16 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           <p className="text-lg font-bold">
             Time: <span className="font-normal">{extractTime(invoice.createdAt!)}</span>
           </p>
+          {delivery && (
+            <>
+              <p className="text-lg font-bold">
+                Delivery Date: <span className="font-normal">{delivery.date}</span>
+              </p>
+              <p className="text-lg font-bold">
+                Delivery Time: <span className="font-normal">{delivery.time}</span>
+              </p>
+            </>
+          )}
           <p className="text-lg font-bold">
             NTN#: <span className="font-normal">0103866-4</span>
           </p>
