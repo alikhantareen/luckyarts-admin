@@ -18,12 +18,20 @@ export function parseDeliveryDate(value: FormDataEntryValue | null): string | nu
   return DELIVERY_DATE_PATTERN.test(trimmed) ? trimmed : null;
 }
 
-/** Formats a stored delivery date as { date: "dd/mm/yyyy", time: "h:mm AM" }. */
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Formats a stored delivery date as { date: "Fri, 20 Nov 2026", time: "3:45 PM" }. */
 export function formatDeliveryDate(value: string | null | undefined): { date: string; time: string } | null {
   const match = value ? DELIVERY_DATE_PATTERN.exec(value) : null;
   if (!match) return null;
   const [, year, month, day, hh, minutes] = match;
+  // Weekday computed in UTC so the server's timezone can't shift the day.
+  const weekday = WEEKDAYS[new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))).getUTCDay()];
   const hours = Number(hh);
   const period = hours >= 12 ? "PM" : "AM";
-  return { date: `${day}/${month}/${year}`, time: `${hours % 12 || 12}:${minutes} ${period}` };
+  return {
+    date: `${weekday}, ${Number(day)} ${MONTHS[Number(month) - 1]} ${year}`,
+    time: `${hours % 12 || 12}:${minutes} ${period}`,
+  };
 }

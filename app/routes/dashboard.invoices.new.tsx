@@ -7,6 +7,7 @@ import { customers, invoices, items as itemsSchema, transactions } from "db/sche
 import { requireUserId, getUser } from "~/utils/session.server";
 import { getNextDisplayNumber } from "~/utils/invoices.server";
 import { parseDeliveryDate } from "~/utils/invoices";
+import { DeliveryDateField } from "~/components/DeliveryDateField";
 
 export const InvoiceFormSchema = z.object({
   customer: z.object({
@@ -235,17 +236,7 @@ export default function NewInvoiceRoute() {
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
             />
           </p>
-          <p className="w-full px-4 sm:pl-0">
-            <label htmlFor="deliveryDate" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Delivery Date &amp; Time (Optional)
-            </label>
-            <input
-              id="deliveryDate"
-              name="deliveryDate"
-              type="datetime-local"
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-            />
-          </p>
+          <DeliveryDateField name="deliveryDate" />
           <h3 className="mx-[-4] mt-6 text-lg font-medium px-4 py-2 text-white bg-gray-800 sm:col-span-2 rounded-sm">
             Items Information
           </h3>

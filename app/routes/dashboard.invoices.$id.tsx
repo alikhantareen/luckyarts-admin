@@ -793,7 +793,7 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
             <FaWhatsapp /> 0306-6667200
           </p>
           <p className="text-sm font-semibold mb-1 flex items-center gap-1">
-            <FaLocationDot /> Shop # 1: Abdali Road Near Chowk Fawara, Multan
+            <FaLocationDot /> Abdali Road Near Chowk Fawara, Multan
           </p>
         </div>
         <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute -bottom-4 left-[145px] print:left-[144px] print:text-white">
@@ -817,23 +817,13 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           <p className="text-lg font-bold">
             Time: <span className="font-normal">{extractTime(invoice.createdAt!)}</span>
           </p>
-          {delivery && (
-            <>
-              <p className="text-lg font-bold">
-                Delivery Date: <span className="font-normal">{delivery.date}</span>
-              </p>
-              <p className="text-lg font-bold">
-                Delivery Time: <span className="font-normal">{delivery.time}</span>
-              </p>
-            </>
-          )}
           <p className="text-lg font-bold">
             NTN#: <span className="font-normal">0103866-4</span>
           </p>
         </div>
       </div>
-      <div className="p-4">
-        <table className="w-full mt-3 md:mt-2 border-collapse">
+      <div className="px-4 pb-4 pt-3">
+        <table className="w-full border-collapse">
           <tr className="grid grid-cols-5 md:grid-cols-9 print:grid-cols-9 text-right p-2 bg-stone-950 text-white">
             <th className="col-span-1 text-center text-sm">Sr.No#</th>
             <th className="col-span-2 md:col-span-4 print:col-span-4 text-center text-sm">Item Description</th>
@@ -929,6 +919,16 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           </div>
         </table>
       </div>
+      {delivery && (
+        <div className="px-4 mb-4">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-3 border-b-2 border-[#fdca01] print:border-stone-950">
+            <p className="font-bold text-lg">Your order will be ready for delivery on</p>
+            <p className="font-bold text-lg px-2 bg-[#fdca01] print:bg-stone-950 print:text-white">
+              {delivery.date} · {delivery.time}
+            </p>
+          </div>
+        </div>
+      )}
       <div className="px-4 mb-4">
         <p className="font-bold text-xl">Thank you for being our valuable customer 😊</p>
       </div>

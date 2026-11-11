@@ -7,6 +7,7 @@ import { customers, invoices, items as itemsSchema } from "db/schema";
 import { getUser } from "~/utils/session.server";
 import { getNextDisplayNumber } from "~/utils/invoices.server";
 import { parseDeliveryDate } from "~/utils/invoices";
+import { DeliveryDateField } from "~/components/DeliveryDateField";
 
 // Zod schema for quotation form validation
 export const QuotationFormSchema = z.object({
@@ -256,17 +257,7 @@ export default function NewQuotationRoute() {
               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
             />
           </p>
-          <p className="w-full px-4 sm:pl-0">
-            <label htmlFor="deliveryDateQuotation" className="block mb-2 text-sm font-medium text-gray-900">
-              Delivery Date &amp; Time (Optional)
-            </label>
-            <input
-              id="deliveryDateQuotation"
-              name="deliveryDateQuotation"
-              type="datetime-local"
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5"
-            />
-          </p>
+          <DeliveryDateField name="deliveryDateQuotation" />
 
           {/* Items Section */}
           <h3 className="mx-[-4] mt-6 text-lg font-medium px-4 py-2 text-white bg-gray-800 sm:col-span-2 rounded-sm">
