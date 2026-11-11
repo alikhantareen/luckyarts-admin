@@ -768,22 +768,22 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
 
   return (
     <div ref={ref} className="mt-4 print:mt-8">
-      <div className="md:relative print:relative md:border-b-[16px] print:border-b-[16px] border-[#fdca01] print:border-stone-950 flex justify-between flex-col gap-2 md:gap-0 print:gap-0 md:flex-row print:flex-row p-2 md:p-0 print:p-0">
-        <div className="flex items-end gap-2 print:items-end">
+      <div className="xl:relative print:relative xl:border-b-[16px] print:border-b-[16px] border-[#fdca01] print:border-stone-950 flex justify-between flex-col gap-2 xl:gap-4 print:gap-4 xl:flex-row print:flex-row p-2 xl:p-0 print:p-0">
+        <div className="flex shrink-0 items-end gap-2 print:items-end">
           <img
-            width={80}
+            width={130}
             src={second_logo}
             alt="logo"
-            className="ml-0 md:ml-4 print:ml-4 print:hidden p-2 bg-[#fdca01]"
+            className="ml-0 xl:ml-4 print:ml-4 print:hidden p-2 bg-[#fdca01]"
           />
-          <img width={70} src={bill_logo} alt="logo" className="ml-0 md:ml-4 print:ml-4 hidden print:block" />
+          <img width={120} src={bill_logo} alt="logo" className="ml-0 xl:ml-4 print:ml-4 hidden print:block" />
           <div className="font-lemon flex flex-col items-center">
-            <p className="text-2xl md:text-4xl print:text-4xl font-bold">LUCKY ARTS</p>
+            <p className="text-2xl xl:text-4xl print:text-4xl font-bold whitespace-nowrap">LUCKY ARTS</p>
             <p className="text-xs font-semibold">SINCE 1985</p>
-            <p className="text-xs font-semibold md:hidden print:hidden">THE NAME OF QUALITY</p>
+            <p className="text-xs font-semibold xl:hidden print:hidden">THE NAME OF QUALITY</p>
           </div>
         </div>
-        <div className="mb-2 flex flex-col justify-center md:justify-end print:justify-end md:items-end print:items-end items-start mr-4">
+        <div className="mb-2 flex flex-col justify-center xl:justify-end print:justify-end xl:items-end print:items-end items-start mr-4">
           <p className="text-sm font-semibold">Ashfaq Ahmad Khan Khakwani</p>
           <p className="text-sm font-semibold mb-1 flex items-center gap-1">
             <FaWhatsapp /> 0307-6667200
@@ -796,7 +796,7 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
             <FaLocationDot /> Abdali Road Near Chowk Fawara, Multan
           </p>
         </div>
-        <p className="hidden font-lemon md:block print:block text-xs font-semibold md:absolute print:absolute -bottom-4 left-[145px] print:left-[144px] print:text-white">
+        <p className="hidden font-lemon xl:block print:block text-xs font-semibold xl:absolute print:absolute -bottom-4 left-[195px] print:left-[194px] print:text-white">
           THE NAME OF QUALITY
         </p>
       </div>
@@ -859,8 +859,18 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
               </tr>
             );
           })}
-          <div className="w-full flex justify-end">
-            <div className="border-b-2 border-l-2 border-r-2 border-stone-950 w-[18rem] flex flex-col">
+          {/* Delivery line sits beside the totals box; items-end keeps both bottom bars level. */}
+          <div className="w-full flex flex-col-reverse items-end gap-4 md:flex-row print:flex-row md:justify-end print:justify-end md:gap-0 print:gap-0">
+            {delivery && (
+              <div className="w-full md:w-auto print:w-auto md:flex-1 print:flex-1 md:pr-4 print:pr-4 flex flex-wrap items-center gap-x-3 print:gap-x-2 gap-y-1 pb-3 border-b-2 border-[#fdca01] print:border-stone-950">
+                {/* Smaller in print so the text and date fit on one line beside the totals box on A4. */}
+                <p className="font-bold text-lg print:text-[13px] whitespace-nowrap">Your order will be ready on</p>
+                <p className="font-bold text-lg print:text-[13px] whitespace-nowrap px-2 bg-[#fdca01] print:bg-stone-950 print:text-white">
+                  {delivery.date} - {delivery.time}
+                </p>
+              </div>
+            )}
+            <div className="shrink-0 border-b-2 border-l-2 border-r-2 border-stone-950 w-[18rem] flex flex-col">
               <div className="mt-2 mb-2">
                 <span className="flex justify-between font-bold mb-2 text-stone-950 ">
                   <div className="flex justify-end w-2/3">
@@ -919,16 +929,6 @@ const InvoiceComponent = React.forwardRef<HTMLDivElement | null, InvoiceComponen
           </div>
         </table>
       </div>
-      {delivery && (
-        <div className="px-4 mb-4">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pb-3 border-b-2 border-[#fdca01] print:border-stone-950">
-            <p className="font-bold text-lg">Your order will be ready for delivery on</p>
-            <p className="font-bold text-lg px-2 bg-[#fdca01] print:bg-stone-950 print:text-white">
-              {delivery.date} · {delivery.time}
-            </p>
-          </div>
-        </div>
-      )}
       <div className="px-4 mb-4">
         <p className="font-bold text-xl">Thank you for being our valuable customer 😊</p>
       </div>
